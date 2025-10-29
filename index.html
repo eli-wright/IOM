@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IOM Manual Builder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- pdf-lib for PDF manipulation -->
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
+    <!-- SheetJS for XLSX parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- pdf.js for PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;</script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F3F4F6;
+        }
+        .step-card {
+            transition: all 0.3s ease-in-out;
+            position: relative;
+        }
+        .step-locked::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(249, 250, 251, 0.6);
+            backdrop-filter: blur(2px);
+            border-radius: 0.75rem;
+            z-index: 10;
+        }
+        .drop-zone {
+            border: 2px dashed #9CA3AF;
+            border-radius: 0.75rem;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: #F9FAFB;
+        }
+        .drop-zone.dragover {
+            background-color: #E0F2FE;
+            border-color: #0284C7;
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3B82F6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            50% {
+                box-shadow: 0 0 0 0.5rem rgba(59, 130, 246, 0.4);
+            }
+        }
+        .step-indicator.active .indicator-circle {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="max-w-7xl mx-auto p-4 sm:p-8">
+        <header class="text-center mb-12 relative">
+            <h1 class="text-5xl font-bold text-gray-800">IOM Manual Builder</h1>
+            <p class="text-xl text-gray-500 mt-2">A streamlined tool for creating professional IOM packages.</p>
+            <button id="reset-btn" class="absolute top-0 right-0 bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-all shadow hover:shadow-lg text-sm">
+                <i class="fas fa-sync-alt mr-2"></i>Reset
+            </button>
+        </header>
+
+        <section id="job-number-section" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-10">
+            <h2 class="text-3xl font-bold mb-1 text-gray-700">Project Details</h2>
+            <p class="text-gray-500 mb-6">Enter the Job Number to unlock the steps below.</p>
+            <div>
+                <label for="job-number-input" class="block text-sm font-medium text-gray-700 mb-2">Job Number</label>
+                <input type="text" id="job-number-input" placeholder="e.g., J24-12345" class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+            </div>
+        </section>
+
+        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
+            <!-- Vertical Step Indicators -->
+            <aside class="lg:w-1/4">
+                <div class="sticky top-8">
+                    <ol class="space-y-8">
+                        <!-- Step 1 -->
+                        <li id="step-1-indicator" class="step-indicator flex items-start">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">1</div>
+                                <div class="h-full w-0.5 bg-gray-300 mt-2"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-gray-400">Bill of Materials</h3>
+                                <p class="text-gray-500">Upload BOM & datasheets.</p>
+                            </div>
+                        </li>
+                        <!-- Step 2 -->
+                        <li id="step-2-indicator" class="step-indicator flex items-start">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">2</div>
+                                <div class="h-full w-0.5 bg-gray-300 mt-2"></div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-gray-400">Assign Datasheets</h3>
+                                <p class="text-gray-500">Match files to parts.</p>
+                            </div>
+                        </li>
+                        <!-- Step 3 -->
+                        <li id="step-3-indicator" class="step-indicator flex items-start">
+                            <div class="flex flex-col items-center mr-4">
+                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">3</div>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-lg text-gray-400">Review & Combine</h3>
+                                <p class="text-gray-500">Generate your manual.</p>
+                            </div>
+                        </li>
+                    </ol>
+                </div>
+            </aside>
+            
+            <main class="flex-1 space-y-10">
+                <!-- Section 1: Bill of Materials & Datasheets -->
+                <section id="bom-section" class="step-card step-locked bg-white p-6 sm:p-8 rounded-xl shadow-lg">
+                    <h2 class="text-3xl font-bold mb-1 text-gray-700">Step 1: Upload & Process BOM</h2>
+                    <p class="text-gray-500 mb-6">Upload your Bill of Materials and all related datasheets to begin.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- BOM Upload -->
+                        <div>
+                            <h3 class="font-semibold text-xl mb-3 text-gray-700">1. Bill of Materials</h3>
+                             <div id="bom-drop-zone" class="drop-zone">
+                                <div id="bom-drop-prompt">
+                                    <i class="fas fa-file-invoice text-5xl text-gray-400 mb-4"></i>
+                                    <p class="font-semibold text-lg">Drag & drop BOM file</p>
+                                    <p class="text-gray-500 my-1">or</p>
+                                    <button id="bom-browse-files-btn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 shadow">Browse</button>
+                                </div>
+                                <div id="bom-file-display" class="hidden"></div>
+                                <input type="file" id="bom-file-input" class="hidden" accept=".csv,.xlsx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf">
+                            </div>
+                        </div>
+
+                        <!-- Datasheet Upload -->
+                        <div>
+                             <h3 class="font-semibold text-xl mb-3 text-gray-700">2. All Datasheets (PDF)</h3>
+                             <div id="submittals-drop-zone" class="drop-zone">
+                                <div id="submittals-drop-prompt">
+                                    <i class="fas fa-file-pdf text-5xl text-red-400 mb-4"></i>
+                                    <p class="font-semibold text-lg">Drag & drop PDFs</p>
+                                    <p class="text-gray-500 my-1">or</p>
+                                    <button id="submittals-browse-btn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 shadow">Browse</button>
+                                </div>
+                                <div id="submittals-file-display" class="hidden text-left"></div>
+                                <input type="file" id="submittals-file-input" class="hidden" multiple accept=".pdf">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 text-center">
+                        <button id="process-bom-btn" class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-3 px-8 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl text-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-cogs mr-2"></i>Process BOM
+                        </button>
+                    </div>
+
+                    <div id="bom-preview-container" class="mt-8 hidden">
+                        <h3 class="font-semibold text-xl mb-3">Qualified BOM Items:</h3>
+                        <div class="overflow-x-auto rounded-lg border">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left py-3 px-4 font-semibold text-sm">#</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-sm">Description</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-sm">Manufacturer</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-sm">Part Number</th>
+                                        <th class="text-left py-3 px-4 font-semibold text-sm">Remove</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bom-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section 2: Submittals -->
+                <section id="submittals-section" class="step-card step-locked">
+                    <div class="p-6 sm:p-8 rounded-xl bg-white shadow-lg">
+                        <h2 class="text-3xl font-bold mb-1 text-gray-700">Step 2: Assign Datasheets</h2>
+                        <p class="text-gray-500 mb-6">Confirm datasheets, then use the AI to auto-assign them to the BOM items.</p>
+                        
+                        <div id="submittals-preview-container" class="mt-6">
+                            <h3 class="font-semibold text-xl mb-3">Uploaded Datasheets:</h3>
+                            <ul id="file-list" class="space-y-2 max-h-60 overflow-y-auto pr-2 bg-gray-50 p-4 rounded-lg border"></ul>
+                        </div>
+                        
+                        <div class="mt-6 text-center">
+                            <button id="auto-assign-btn" class="bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold py-3 px-8 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl text-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-brain mr-2"></i>Auto-Assign Files
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Section 3: Review and Combine -->
+                <section id="review-section" class="step-card step-locked">
+                    <div class="p-6 sm:p-8 rounded-xl bg-white shadow-lg">
+                         <h2 class="text-3xl font-bold text-gray-700">Step 3: Review & Combine</h2>
+                         <p class="text-gray-500 mb-6">Review the agent's assignments and generate your manual.</p>
+                        <div id="review-list" class="space-y-4"></div>
+                        <div class="flex justify-end mt-8">
+                            <button id="generate-btn" class="bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold py-4 px-10 rounded-lg hover:from-green-600 hover:to-teal-600 transition text-lg flex items-center shadow-lg hover:shadow-xl" disabled>
+                                <i class="fas fa-file-archive mr-3"></i>Generate IOM Manual
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+        
+    <!-- Modals -->
+    <div id="loading-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-50">
+        <div class="loader"></div>
+        <p id="loading-text" class="text-white text-xl mt-4"></p>
+    </div>
+    <div id="message-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm">
+            <p id="message-text" class="text-lg mb-6"></p>
+            <button id="message-ok-btn" class="bg-blue-500 text-white font-bold py-2 px-10 rounded-lg hover:bg-blue-600 transition">OK</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { PDFDocument } = PDFLib;
+            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+
+            const appState = {
+                jobNumber: '',
+                bomFile: null,
+                bomItems: [],
+                submittalFiles: [],
+                coverManualFile: null,
+                pdfTextCache: new Map(),
+                assignmentCompleted: false,
+            };
+
+            // DOM Elements
+            const jobNumberInput = document.getElementById('job-number-input');
+            const resetBtn = document.getElementById('reset-btn');
+            const bomDropZone = document.getElementById('bom-drop-zone');
+            const bomFileInput = document.getElementById('bom-file-input');
+            const bomTableBody = document.getElementById('bom-table-body');
+            const bomPreviewContainer = document.getElementById('bom-preview-container');
+            const submittalsDropZone = document.getElementById('submittals-drop-zone');
+            const submittalsBrowseBtn = document.getElementById('submittals-browse-btn');
+            const submittalsFileInput = document.getElementById('submittals-file-input');
+            const fileList = document.getElementById('file-list');
+            const processBomBtn = document.getElementById('process-bom-btn');
+            const autoAssignBtn = document.getElementById('auto-assign-btn');
+            const reviewList = document.getElementById('review-list');
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingModal = document.getElementById('loading-modal');
+            const loadingText = document.getElementById('loading-text');
+            const messageModal = document.getElementById('message-modal');
+            const messageText = document.getElementById('message-text');
+            const messageOkBtn = document.getElementById('message-ok-btn');
+            const stepIndicators = {
+                1: document.getElementById('step-1-indicator'),
+                2: document.getElementById('step-2-indicator'),
+                3: document.getElementById('step-3-indicator'),
+            };
+
+            const showMessage = (message) => {
+                messageText.textContent = message;
+                messageModal.classList.remove('hidden');
+            };
+            const hideMessage = () => messageModal.classList.add('hidden');
+            
+            const updateUI = () => {
+                const jobNumberEntered = appState.jobNumber.length > 0;
+                const bomUploaded = appState.bomFile !== null;
+                const submittalsUploaded = appState.submittalFiles.length > 0 || appState.coverManualFile !== null;
+                const bomProcessed = appState.bomItems.length > 0;
+                const assignmentCompleted = appState.assignmentCompleted;
+                
+                const eligibleBomItems = appState.bomItems.filter(i => i.eligible);
+                const hasContentToGenerate = eligibleBomItems.some(item => item.submittalFile) || appState.coverManualFile;
+
+                const updateIndicator = (el, state, number) => {
+                    const circle = el.querySelector('.indicator-circle');
+                    const text = el.querySelectorAll('h3, p');
+                    circle.classList.remove('bg-blue-500', 'bg-green-500', 'bg-gray-300', 'text-white', 'text-gray-500');
+                    text.forEach(t => t.classList.remove('text-gray-400'));
+                    el.classList.remove('active');
+                    if (state === 'completed') {
+                        circle.classList.add('bg-green-500', 'text-white');
+                        circle.innerHTML = `<i class="fas fa-check"></i>`;
+                    } else if (state === 'active') {
+                        el.classList.add('active');
+                        circle.classList.add('bg-blue-500', 'text-white');
+                        circle.innerHTML = number;
+                    } else { // locked
+                        circle.classList.add('bg-gray-300', 'text-gray-500');
+                        text.forEach(t => t.classList.add('text-gray-400'));
+                        circle.innerHTML = number;
+                    }
+                };
+
+                document.getElementById('bom-section').classList.toggle('step-locked', !jobNumberEntered);
+                document.getElementById('submittals-section').classList.toggle('step-locked', !bomProcessed);
+                document.getElementById('review-section').classList.toggle('step-locked', !assignmentCompleted);
+                
+                if (!jobNumberEntered) {
+                    updateIndicator(stepIndicators[1], 'locked', '1');
+                    updateIndicator(stepIndicators[2], 'locked', '2');
+                    updateIndicator(stepIndicators[3], 'locked', '3');
+                } else if (!bomProcessed) {
+                     updateIndicator(stepIndicators[1], 'active', '1');
+                     updateIndicator(stepIndicators[2], 'locked', '2');
+                     updateIndicator(stepIndicators[3], 'locked', '3');
+                } else if (!assignmentCompleted) {
+                     updateIndicator(stepIndicators[1], 'completed', '1');
+                     updateIndicator(stepIndicators[2], 'active', '2');
+                     updateIndicator(stepIndicators[3], 'locked', '3');
+                } else { 
+                     updateIndicator(stepIndicators[1], 'completed', '1');
+                     updateIndicator(stepIndicators[2], 'completed', '2');
+                     updateIndicator(stepIndicators[3], 'active', '3');
+                }
+                
+                bomPreviewContainer.classList.toggle('hidden', !bomProcessed);
+                processBomBtn.disabled = !(bomUploaded && submittalsUploaded);
+                autoAssignBtn.disabled = !bomProcessed;
+                generateBtn.disabled = !assignmentCompleted || !hasContentToGenerate;
+            };
+
+            const renderBomTable = () => {
+                bomTableBody.innerHTML = appState.bomItems.map((item, index) => `
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="py-3 px-4 font-bold text-gray-500">${index + 1}</td>
+                        <td class="py-3 px-4">${item.description}</td>
+                        <td class="py-3 px-4 text-gray-600">${item.manufacturer}</td>
+                        <td class="py-3 px-4 text-gray-600">${item.partNumber}</td>
+                        <td class="py-3 px-4"><button class="text-red-500 hover:text-red-700 delete-bom-btn" data-index="${index}" title="Remove item"><i class="fas fa-trash-alt"></i></button></td>
+                    </tr>`).join('');
+                updateUI();
+            };
+            
+            const getManufacturerFromRules = (partNumber, description) => {
+                const descLower = (description || '').toLowerCase();
+                if (descLower.includes('level eye')) return 'H.A. Phillips';
+                if (descLower.includes('teikoku')) return 'Teikoku';
+                if (descLower.includes('cornell')) return 'Cornell'; // New rule
+                if (!partNumber) return null;
+                const pn = partNumber.toUpperCase();
+
+                // Parker-R/S Rules
+                const parkerPrefixes = ['SGY', 'SGT', 'SAN', 'S4A', 'SRH', 'SR-', 'L-', 'M1-', 'XAN'];
+                const parkerModels = ['107015', '107016', '107017', '107020'];
+                if (parkerPrefixes.some(prefix => pn.startsWith(prefix)) || parkerModels.some(model => pn.includes(model)) || pn.startsWith('530-') || pn.includes('LLSS')) {
+                    return 'Parker-R/S';
+                }
+
+                if (pn.includes('HLL')) return 'Hansen';
+                if (['GW','HCK','AS','VS','HA','HGV','GSB','H777','GS','MVS','H5600','MCV','AW','ASB'].some(p => pn.startsWith(p))) return 'Hansen';
+                if (['060G','027G','084','148B','148G','148X','018F','128F','027H'].some(p => pn.startsWith(p))) return 'Danfoss';
+                if (['800OP','800D','801','801DHC','802','811','812','804R','803','813','805R','CSS502A','850R','851R','CSS502B','CSS502C','804','814','805','815','850','851','901','903M','848M','849M','876M'].some(p => pn.includes(p)) || pn.startsWith('M-')) return 'Cyrus Shank';
+                if (['216-','119F','216F','217C','316C'].some(p => pn.startsWith(p))) return 'Teikoku';
+                if (pn.startsWith('H1100LC-RN')) return 'H.A. Phillips';
+                if (pn === 'V-C8954414') return 'Apollo';
+                return null;
+            };
+            
+            const fetchManufacturerWithAI = async (item) => {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                let prompt = `Analyze the component and PDF data to find the manufacturer. Component: - Description: "${item.description}" - Part Number: "${item.partNumber}".\nAvailable Datasheet Content Snippets:`;
+                appState.pdfTextCache.forEach((text, fileName) => {
+                     prompt += `\n\n---\nFile: ${fileName}\nContent: "${text.substring(0, 1000)}..."`;
+                });
+                prompt += `\n\n---\nBased on all data, what is the manufacturer? Respond with ONLY the name. If unknown, respond "Unknown".`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { "temperature": 0.0 } };
+                try {
+                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    if (!response.ok) return "Unknown";
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    return text ? text.trim().replace(/\.$/, '') : "Unknown";
+                } catch (error) { console.error("AI Manufacturer fetch error:", error); return "Unknown"; }
+            };
+
+            const handleBomFile = (file) => {
+                if (!file) return;
+                appState.bomFile = file;
+                const display = document.getElementById('bom-file-display');
+                document.getElementById('bom-drop-prompt').classList.add('hidden');
+                display.innerHTML = `<div class="flex items-center justify-center p-4 bg-green-50 text-sm"><p class="font-semibold text-green-800 truncate max-w-full px-2"><i class="fas fa-check-circle mr-2"></i>${file.name}</p></div>`;
+                display.classList.remove('hidden');
+                updateUI();
+            };
+
+            const handleSubmittalFiles = (files) => {
+                const allNewFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+                const coverManualName = "JWT Industrial Recirculator Package_ Installation, Operation, and Maintenance Manual (2025 Edition).pdf";
+                const coverFile = allNewFiles.find(f => f.name === coverManualName);
+                if (coverFile) {
+                    appState.coverManualFile = coverFile;
+                    showMessage("Cover Manual successfully uploaded.");
+                }
+                const regularFiles = allNewFiles.filter(f => f.name !== coverManualName);
+                appState.submittalFiles = [...new Set([...appState.submittalFiles, ...regularFiles])];
+                document.getElementById('submittals-drop-prompt').classList.add('hidden');
+                document.getElementById('submittals-file-display').classList.remove('hidden');
+                renderFileList();
+                updateUI();
+            };
+            
+            const renderFileList = () => {
+                const submittalsDisplay = document.getElementById('submittals-file-display');
+                if (appState.submittalFiles.length > 0 || appState.coverManualFile) {
+                    submittalsDisplay.innerHTML = `<div class="flex items-center justify-center p-4 bg-green-50 text-sm"><p class="font-semibold text-green-800"><i class="fas fa-check-circle mr-2"></i>${appState.submittalFiles.length} datasheets & ${appState.coverManualFile ? 1 : 0} cover loaded.</p></div>`;
+                }
+                let html = '';
+                if (appState.coverManualFile) {
+                    html += `<li class="flex items-center justify-between bg-green-100 p-2 rounded-md border-l-4 border-green-500"><span class="text-sm font-bold truncate"><i class="fas fa-crown text-yellow-500 mr-2"></i>${appState.coverManualFile.name} (Cover)</span><button class="text-gray-500 hover:text-red-600 remove-cover-btn"><i class="fas fa-times-circle"></i></button></li>`;
+                }
+                html += appState.submittalFiles.map((file, index) => `<li class="flex items-center justify-between bg-gray-100 p-2 rounded-md"><span class="text-sm font-medium truncate"><i class="fas fa-file-pdf text-red-500 mr-2"></i>${file.name}</span><button class="text-gray-500 hover:text-red-600 remove-file-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></li>`).join('');
+                fileList.innerHTML = html;
+            };
+
+            const extractTextFromPdf = async (file) => {
+                if (appState.pdfTextCache.has(file.name)) return;
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        try {
+                            const typedarray = new Uint8Array(event.target.result);
+                            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                            let fullText = '';
+                            for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
+                                const page = await pdf.getPage(i);
+                                const textContent = await page.getTextContent();
+                                fullText += textContent.items.map(item => item.str).join(' ');
+                            }
+                            appState.pdfTextCache.set(file.name, fullText.toLowerCase());
+                        } catch(e) { console.error("Failed to parse PDF:", file.name); }
+                        resolve();
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            };
+
+            const processBom = async () => {
+                loadingModal.classList.remove('hidden');
+                
+                loadingText.textContent = "Analyzing datasheets...";
+                await Promise.all(appState.submittalFiles.map(file => extractTextFromPdf(file)));
+
+                loadingText.textContent = 'Parsing BOM file...';
+                let rawBomItems = [];
+                try {
+                    const file = appState.bomFile;
+                    const event = await new Promise((resolve, reject) => {
+                        const reader = new FileReader(); reader.onload = resolve; reader.onerror = reject;
+                        if (file.name.toLowerCase().endsWith('xlsx') || file.name.toLowerCase().endsWith('pdf')) reader.readAsArrayBuffer(file); else reader.readAsText(file);
+                    });
+                    const parseRow = (row) => { const d=String(row[2]||'').trim(), p=String(row[3]||'').trim(); if(d||p) rawBomItems.push({description:d,partNumber:p,manufacturer:'',submittalFile:null,eligible:true}); };
+                    const fileType = file.name.toLowerCase().split('.').pop();
+                    if (fileType==='xlsx'){ const d=new Uint8Array(event.target.result), w=XLSX.read(d,{type:'array'}); XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1}).slice(1).forEach(parseRow); }
+                    else if(fileType==='csv'){ event.target.result.split('\n').slice(1).forEach(l=>{const p=(l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)||[]).map(i=>i.replace(/"/g,'').trim()); if(p.length>2)parseRow(p);});}
+                    else if(fileType==='pdf'){ const t=new Uint8Array(event.target.result),p=await pdfjsLib.getDocument(t).promise; for(let i=1;i<=p.numPages;i++){const a=await p.getPage(i),c=await a.getTextContent();c.items.map(item=>item.str).join('\n').split('\n').slice(1).forEach(l=>{const p=l.split(/\s{2,}/).map(i=>i.trim());if(p.length>2)parseRow(p);});}}
+                } catch (error) { showMessage('Error parsing BOM file.'); loadingModal.classList.add('hidden'); return; }
+                
+                const populatedRawItems = await Promise.all(rawBomItems.map(async (item, index) => {
+                    loadingText.textContent = `Identifying manufacturers (${index + 1}/${rawBomItems.length})...`;
+                    let manufacturer = getManufacturerFromRules(item.partNumber, item.description);
+                    if (!manufacturer || manufacturer.toLowerCase() === 'unknown') {
+                        manufacturer = await fetchManufacturerWithAI(item);
+                    }
+                    item.manufacturer = manufacturer;
+                    return item;
+                }));
+
+                loadingText.textContent = 'Filtering BOM items...';
+                // --- Start of Perfected Filtering Logic ---
+                const gaugeValve = populatedRawItems.find(i=>i.description.toLowerCase().includes('gauge')&&i.description.toLowerCase().includes('angle valve'));
+                const purgeValve = populatedRawItems.find(i=>i.description.toLowerCase().includes('purge')&&i.description.toLowerCase().includes('angle valve'));
+                const partNumbersToExclude=new Set();
+                if(gaugeValve&&purgeValve&&gaugeValve.manufacturer.toLowerCase()===purgeValve.manufacturer.toLowerCase()){if(purgeValve.partNumber)partNumbersToExclude.add(purgeValve.partNumber);}
+                const exclusionKeywords=['vessel','oil pot','steel base','level column','orifice','description','actuator','ammonia gauge', 'supplied with pump'];
+                const seenComponentTypes = {};
+                const seenPartNumbers=new Set();
+                let finalBomItems=[];
+                for(const item of populatedRawItems){
+                    if(item.partNumber && partNumbersToExclude.has(item.partNumber)) continue;
+                    const d=item.description.toLowerCase();
+                    if(exclusionKeywords.some(k=>d.includes(k))) continue;
+                    if(d.includes('coil')&&!d.includes('valve')) continue;
+                    if(item.partNumber && seenPartNumbers.has(item.partNumber)) continue;
+                    const category = getComponentCategory(d);
+                    const manufacturer = item.manufacturer.toLowerCase();
+                    if (category) {
+                        if (!seenComponentTypes[manufacturer]) seenComponentTypes[manufacturer] = new Set();
+                        if (seenComponentTypes[manufacturer].has(category)) continue;
+                        seenComponentTypes[manufacturer].add(category);
+                    }
+                    if(item.partNumber) seenPartNumbers.add(item.partNumber);
+                    finalBomItems.push(item);
+                }
+                const eligibleKeywords=['valve','pump','sight glass','switch','sensor','probe','transducer','level eye','gauge','indicator','manifold','regulator','motor','filter','drier', 'control panel'];
+                finalBomItems.forEach(item=>{item.eligible=eligibleKeywords.some(k=>item.description.toLowerCase().includes(k))});
+                // --- End of Perfected Filtering Logic ---
+                
+                appState.bomItems = finalBomItems;
+                renderBomTable();
+                loadingModal.classList.add('hidden');
+                updateUI();
+            };
+
+            const getComponentCategory = (descriptionLower) => {
+                if (descriptionLower.includes('hand expansion valve')) return 'hand-expansion-valve'; // Highest priority
+                if (descriptionLower.includes('shut-off valve')) return 'shut-off-valve'; // Simplified
+                if (descriptionLower.includes('pump')) return 'pump'; 
+                if (descriptionLower.includes('check valve')) return 'check-valve'; 
+                if (descriptionLower.includes('reseating regulator')) return 'reseating-regulator'; 
+                if (descriptionLower.includes('gauge valve')) return 'gauge-valve'; 
+                if (descriptionLower.includes('purge valve')) return 'purge-valve'; 
+                if (descriptionLower.includes('ball valve')) return 'ball-valve'; 
+                if (descriptionLower.includes('float switch')) return 'float-switch'; 
+                if (descriptionLower.includes('level eye')) return 'level-eye'; 
+                if (descriptionLower.includes('probe')) return 'probe'; 
+                if (descriptionLower.includes('relief valve')) return 'relief-valve'; 
+                if (descriptionLower.includes('three way manifold') || descriptionLower.includes('3-way manifold')) return 'manifold'; 
+                if (descriptionLower.includes('pressure transducer')) return 'pressure-transducer'; 
+                if (descriptionLower.includes('solenoid valve')) return 'solenoid-valve';
+                return null;
+            }
+
+            const autoAssignFiles = async () => {
+                loadingModal.classList.remove('hidden');
+                loadingText.textContent = "Applying specific rules...";
+                const usedFiles = new Set();
+                appState.bomItems.forEach(item => { item.submittalFile = null; });
+                const eligibleItems = appState.bomItems.filter(i => i.eligible);
+
+                const applySpecificRules = () => {
+                    eligibleItems.forEach(item => {
+                        if (item.submittalFile) return;
+                        const d = item.description.toLowerCase(), m = item.manufacturer.toLowerCase();
+                        let a = null;
+                        if (d.includes('pump')) {
+                            if (m === 'teikoku') { if (d.includes('alp') || d.includes('high differential')) a = appState.submittalFiles.find(f => f.name.includes('Teikoku - ALP PUMP')); else a = appState.submittalFiles.find(f => f.name === 'Teikoku - PUMP IOM.pdf');} 
+                            else if (m === 'cornell') a = appState.submittalFiles.find(f => f.name.includes('Cornell - HT Pumps'));
+                        } 
+                        else if (d.includes('control panel')) a = appState.submittalFiles.find(f => f.name.toLowerCase().includes('control panel'));
+                        else if (m === 'apollo' && d.includes('ball valve')) a = appState.submittalFiles.find(f => f.name.includes('Apollo - Valves 8954414A'));
+                        else if (m === 'hansen' && d.includes('float switch')) a = appState.submittalFiles.find(f => f.name.includes('Hansen - HLL Refrigerant Float Switch'));
+                        else if (m === 'danfoss' && d.includes('pressure transducer')) a = appState.submittalFiles.find(f => f.name.includes('Danfoss - Pressure transmitter Type AKS 32 and AKS 33'));
+                        else if (m === 'danfoss' && d.includes('solenoid valve')) { // Corrected General Danfoss Solenoid Rule
+                           const icsFile = appState.submittalFiles.find(f => f.name.includes('Danfoss - Solenoid Valve ICS'));
+                           if (icsFile) a = icsFile;
+                        }
+                        else if (m === 'parker-r/s') {
+                            const p = item.partNumber.toUpperCase();
+                            if (d.includes('relief valve')) { if (p.startsWith('SRH')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS -SRH Relief Valve')); else if (p.startsWith('SRLQ')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - SRLQ-EN')); else if (p.startsWith('SR')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - SR Relief Valve'));} 
+                            else if (d.includes('manifold')) { if (p.startsWith('M1-')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - M1 Manifolds'));} 
+                            else if (d.includes('float switch') && p.includes('LLSS')) { a = appState.submittalFiles.find(f => f.name.includes('Parker RS - LLSS Float Switch'));}
+                        }
+                        if (a && !usedFiles.has(a.name)) { item.submittalFile = a; usedFiles.add(a.name);}
+                    });
+                };
+                applySpecificRules();
+
+                const applySmartAssignment = async (unassignedItems, availableFiles) => {
+                    const apiKey = "", apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                    for (const item of unassignedItems) {
+                        loadingText.textContent = `AI analysis for: ${item.description}...`;
+                        let prompt = `You are an expert matching industrial refrigeration components to datasheets. BOM Item: - Description: "${item.description}" - Part Number: "${item.partNumber}" - Manufacturer: "${item.manufacturer}". Analyze the content of the following PDFs and find the best match. Available PDF Files:`;
+                        availableFiles.forEach(file => { prompt += `\n\n---\nFilename: ${file.name}\nContent Snippet: "${(appState.pdfTextCache.get(file.name) || "").substring(0, 4000)}..."`; });
+                        prompt += `\n\n---\nWhich file is the correct datasheet? Respond with ONLY the exact filename. If no file is a confident match, respond with "None".`;
+                        const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { "temperature": 0.0 } };
+                        try {
+                            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                            if (!response.ok) continue;
+                            const result = await response.json();
+                            const matchedFilename = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+                            const matchedFile = availableFiles.find(f => f.name === matchedFilename);
+                            if (matchedFile) { item.submittalFile = matchedFile; usedFiles.add(matchedFile.name); availableFiles = availableFiles.filter(f => f.name !== matchedFile.name); }
+                        } catch (error) { console.error("AI assignment error:", error); }
+                    }
+                };
+                const unassignedItems = eligibleItems.filter(item => !item.submittalFile);
+                let availableFiles = appState.submittalFiles.filter(file => !usedFiles.has(file.name));
+                if (unassignedItems.length > 0 && availableFiles.length > 0) {
+                    await applySmartAssignment(unassignedItems, availableFiles);
+                }
+                
+                appState.assignmentCompleted = true;
+                loadingModal.classList.add('hidden');
+                showMessage("Auto-assignment complete. Please review the results in Step 3.");
+                renderReviewList();
+                updateUI();
+            };
+
+            const renderReviewList = () => {
+                const fileOptions = appState.submittalFiles.map(file => `<option value="${file.name}">${file.name}</option>`).join('');
+                const eligibleItems = appState.bomItems.filter(i => i.eligible);
+                reviewList.innerHTML = eligibleItems.map((item) => {
+                    const originalIndex = appState.bomItems.indexOf(item);
+                    return `<div class="p-4 rounded-lg border bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-center"><div><p class="font-bold text-lg">${originalIndex + 1}. ${item.description}</p><p class="text-sm text-gray-500">${item.manufacturer || 'N/A'} - ${item.partNumber || 'N/A'}</p></div><div><select data-bom-item-index="${originalIndex}" class="review-select w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500"><option value="">-- Select a Datasheet --</option>${fileOptions}</select></div></div>`;
+                }).join('');
+                reviewList.querySelectorAll('.review-select').forEach(select => {
+                    const bomIndex = parseInt(select.dataset.bomItemIndex, 10);
+                    const bomItem = appState.bomItems[bomIndex];
+                    if (bomItem && bomItem.submittalFile) select.value = bomItem.submittalFile.name;
+                });
+            };
+
+            const combinePdfs = async () => {
+                loadingModal.classList.remove('hidden'); loadingText.textContent = "Initializing PDF generation...";
+                const finalPdf = await PDFDocument.create();
+                if (appState.coverManualFile) { 
+                    try { 
+                        loadingText.textContent = `Processing Cover Manual...`; 
+                        const fb = await appState.coverManualFile.arrayBuffer(); 
+                        const sp = await PDFDocument.load(fb, { ignoreEncryption: true }); 
+                        const cp = await finalPdf.copyPages(sp, sp.getPageIndices()); 
+                        cp.forEach(p => finalPdf.addPage(p)); 
+                    } catch (e) { showMessage(`Could not process the Cover Manual. Skipping.`); } 
+                }
+                const itemsToCombine = appState.bomItems.filter(item => item.eligible && item.submittalFile);
+                if (itemsToCombine.length === 0 && !appState.coverManualFile) { 
+                    showMessage("No datasheets have been assigned or selected for inclusion."); 
+                    loadingModal.classList.add('hidden'); return; 
+                }
+                for (let i = 0; i < itemsToCombine.length; i++) { 
+                    const item = itemsToCombine[i]; 
+                    loadingText.textContent = `Processing (${i + 1}/${itemsToCombine.length}): ${item.description}`; 
+                    try { 
+                        const fb = await item.submittalFile.arrayBuffer(); 
+                        const sp = await PDFDocument.load(fb, { ignoreEncryption: true }); 
+                        const cp = await finalPdf.copyPages(sp, sp.getPageIndices()); 
+                        cp.forEach(p => finalPdf.addPage(p)); 
+                    } catch (e) { showMessage(`Could not process ${item.submittalFile.name}. Skipping.`); } 
+                }
+                loadingText.textContent = "Finalizing your manual..."; 
+                const pdfBytes = await finalPdf.save(); 
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' }); 
+                const a = document.createElement('a'); 
+                a.href = URL.createObjectURL(blob); 
+                const safeJobNumber = appState.jobNumber.replace(/[^a-z0-9\-_]/gi, '_') || 'Job'; 
+                a.download = `${safeJobNumber}-IOM.pdf`; 
+                document.body.appendChild(a); a.click(); a.remove(); 
+                URL.revokeObjectURL(a.href); 
+                loadingModal.classList.add('hidden');
+            };
+
+            // Event Listeners
+            resetBtn.addEventListener('click', () => location.reload());
+            jobNumberInput.addEventListener('input', (e) => { appState.jobNumber = e.target.value.trim(); updateUI(); });
+            messageOkBtn.addEventListener('click', hideMessage);
+            document.getElementById('bom-browse-files-btn').addEventListener('click', () => bomFileInput.click());
+            bomFileInput.addEventListener('change', (e) => handleBomFile(e.target.files[0]));
+            ['dragover', 'dragleave', 'drop'].forEach(ev => bomDropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); bomDropZone.classList.remove('dragover'); }));
+            bomDropZone.addEventListener('dragover', () => bomDropZone.classList.add('dragover'));
+            bomDropZone.addEventListener('drop', e => { if (e.dataTransfer.files?.[0]) handleBomFile(e.dataTransfer.files[0]); });
+            
+            submittalsBrowseBtn.addEventListener('click', () => submittalsFileInput.click());
+            submittalsFileInput.addEventListener('change', (e) => handleSubmittalFiles(e.target.files));
+            ['dragover', 'dragleave', 'drop'].forEach(ev => submittalsDropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); submittalsDropZone.classList.remove('dragover'); }));
+            submittalsDropZone.addEventListener('dragover', () => submittalsDropZone.classList.add('dragover'));
+            submittalsDropZone.addEventListener('drop', e => { if (e.dataTransfer.files) handleSubmittalFiles(e.dataTransfer.files); });
+            
+            fileList.addEventListener('click', (e) => {
+                const removeBtn = e.target.closest('.remove-file-btn'); const removeCoverBtn = e.target.closest('.remove-cover-btn');
+                if (removeBtn) { const i = parseInt(removeBtn.dataset.index, 10), f = appState.submittalFiles[i]; appState.submittalFiles.splice(i, 1); appState.pdfTextCache.delete(f.name); renderFileList(); updateUI(); }
+                if(removeCoverBtn) { appState.coverManualFile = null; renderFileList(); updateUI(); }
+            });
+            
+            processBomBtn.addEventListener('click', processBom);
+            autoAssignBtn.addEventListener('click', autoAssignFiles);
+            generateBtn.addEventListener('click', combinePdfs);
+            
+            reviewList.addEventListener('change', (e) => {
+                if (e.target.classList.contains('review-select')) {
+                    const i = parseInt(e.target.dataset.bomItemIndex, 10), f = e.target.value;
+                    appState.bomItems[i].submittalFile = appState.submittalFiles.find(file => file.name === f) || null;
+                    updateUI();
+                }
+            });
+            bomTableBody.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-bom-btn')) {
+                    appState.bomItems.splice(parseInt(e.target.closest('.delete-bom-btn').dataset.index, 10), 1);
+                    renderBomTable();
+                    renderReviewList();
+                }
+            });
+            updateUI();
+        });
+    </script>
+</body>
+</html>
+
+
