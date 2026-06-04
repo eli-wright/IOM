@@ -634,18 +634,36 @@ async function rowsFromPdfBom(buf){
 }
 
 /* ============================== DOMAIN RULES (preserved) ============================== */
+/* Canonicalize manufacturer names/aliases. R/S (Refrigerating Specialties) is Parker's line. */
+function normalizeManufacturer(name){
+  const s = String(name || "").trim();
+  if (!s) return "";
+  const l = s.toLowerCase();
+  if (l.includes("jwt")) return "JWT";
+  if (l.includes("parker") || l === "r/s" || l === "rs" || l === "r-s" ||
+      l.includes("refrigerating specialties") || l.includes("ref spec")) return "Parker";
+  return s;
+}
+/* Best-effort manufacturer from a datasheet filename ("Parker RS - …" → Parker, "JWT …" → JWT). */
+function mfgFromFilename(name){
+  if (!name) return "";
+  const head = String(name).split(" - ")[0].replace(/\.pdf$/i, "").trim();
+  return normalizeManufacturer(head);
+}
 function getManufacturerFromRules(partNumber, description){
   const descLower = lc(description);
+  if (descLower.includes("jwt")) return "JWT";
   if (descLower.includes("level eye")) return "H.A. Phillips";
   if (descLower.includes("teikoku")) return "Teikoku";
   if (descLower.includes("cornell")) return "Cornell";
+  if (descLower.includes("parker") || descLower.includes("refrigerating specialties")) return "Parker";
   if (!partNumber) return null;
   const pn = String(partNumber).toUpperCase();
 
-  const parkerPrefixes = ["SGY","SGT","SAN","S4A","SRH","SR-","L-","M1-","XAN"];
+  const parkerPrefixes = ["SGY","SGT","SAN","S4A","SRH","SRLQ","SR1R","SR-","L-","M1-","XAN","A2BK","CK4A","PEV","RSF","HEV"];
   const parkerModels = ["107015","107016","107017","107020"];
   if (parkerPrefixes.some(p => pn.startsWith(p)) || parkerModels.some(m => pn.includes(m)) || pn.startsWith("530-") || pn.includes("LLSS"))
-    return "Parker-R/S";
+    return "Parker";
 
   if (pn.includes("HLL")) return "Hansen";
   if (["GW","HCK","AS","VS","HA","HGV","GSB","H777","GS","MVS","H5600","MCV","AW","ASB"].some(p => pn.startsWith(p))) return "Hansen";
@@ -945,6 +963,7 @@ async function processBom(){
     /* Manufacturers: BOM column → shop rules → AI batch */
     setLoading("Identifying manufacturers…");
     raw.forEach(it => {
+      if (it.manufacturer) it.manufacturer = normalizeManufacturer(it.manufacturer);   // R/S → Parker, etc.
       if (!it.manufacturer){
         const m = getManufacturerFromRules(it.partNumber, it.description);
         if (m){ it.manufacturer = m; it.mfgSource = "rule"; }
@@ -1024,7 +1043,7 @@ function applySpecificRules(items, used){
       f = findFileByName(n => n.includes("aks 32") || n.includes("aks 33") || (n.includes("danfoss") && n.includes("pressure transmitter")));
     else if (m === "danfoss" && d.includes("solenoid valve"))
       f = findFileByName(n => n.includes("solenoid valve ics")) || findFileByName(n => n.includes("danfoss") && n.includes("solenoid"));
-    else if (m === "parker-r/s"){
+    else if (m === "parker"){
       if (d.includes("relief valve")){
         if (pn.startsWith("SRH")) f = findFileByName(n => n.includes("srh") && n.includes("relief"));
         else if (pn.startsWith("SRLQ")) f = findFileByName(n => n.includes("srlq"));
@@ -1092,6 +1111,15 @@ async function autoAssign(){
     setLoading(`AI matching ${remaining.length} remaining item${remaining.length === 1 ? "" : "s"}…`);
     await aiAssignFiles(remaining, avail, used);
   }
+
+  /* Backfill any still-unknown manufacturer from the datasheet it matched to
+     (e.g. "Parker RS - …" → Parker, "JWT …" → JWT) so nothing reads "Unknown". */
+  items.forEach(it => {
+    if (it.assignedFile && (!it.manufacturer || lc(it.manufacturer) === "unknown")){
+      const mf = mfgFromFilename(it.assignedFile);
+      if (mf){ it.manufacturer = mf; it.mfgSource = "match"; }
+    }
+  });
 
   state.assigned = true;
   renderReview(); updateUI();
