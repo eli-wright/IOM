@@ -32,11 +32,8 @@ Deployment is fully automated by [`.github/workflows/deploy.yml`](.github/workfl
 - **On push to `main`:** the app and the `datasheets/` folder are published to
   GitHub Pages.
 
-### One-time setup
-
-In the repo: **Settings → Pages → Build and deployment → Source = "GitHub Actions"**.
-
-After that, every push to `main` publishes to:
+The deploy job enables Pages (with the "GitHub Actions" source) automatically on
+its first run, so there is no manual setup. Every push to `main` publishes to:
 
 ```
 https://eli-wright.github.io/IOM/
@@ -44,6 +41,9 @@ https://eli-wright.github.io/IOM/
 
 Serving from GitHub Pages also lets the app fetch datasheets same-origin (no API
 rate limits, CDN-cached).
+
+> If your org disallows workflow-managed Pages, set the source manually instead:
+> **Settings → Pages → Build and deployment → Source = "GitHub Actions"**.
 
 ## Local validation
 

@@ -6,9 +6,9 @@ name: Build & Deploy
 #   • deploy    – publishes the app + datasheets to GitHub Pages, but only from
 #                 main (pull requests are validated, never deployed).
 #
-# One-time setup in the repo: Settings → Pages → Build and deployment →
-# Source = "GitHub Actions". After that every push to main goes live at
-# https://eli-wright.github.io/IOM/
+# No manual setup needed: the deploy job enables Pages with the "GitHub Actions"
+# source automatically (configure-pages enablement). Every push to main goes
+# live at https://eli-wright.github.io/IOM/
 
 on:
   push:
@@ -73,7 +73,11 @@ jobs:
           fi
 
       - name: Configure GitHub Pages
+        # enablement:true switches the repo's Pages source to "GitHub Actions"
+        # automatically on the first run, so no manual Settings change is needed.
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
