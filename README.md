@@ -16,10 +16,12 @@ step and no library to manage**. The flow is just two steps:
    matched to it. Override any match with the dropdowns, set options, and
    generate the combined PDF.
 
-In the background the app lists this repo's [`datasheets/`](datasheets) folder
-via the GitHub API, downloads every PDF once (cached in the browser via
-IndexedDB so they only re-download when they change in the repo), then
-cross-references each one to the BOM using shop rules → part-number/text
+On first load a **progress screen** downloads the entire datasheet library from
+this repo's [`datasheets/`](datasheets) folder (showing a live percentage) and
+only unlocks the app once everything is in. PDFs are cached in the browser via
+IndexedDB, so repeat visits are near-instant and files only re-download when
+they change in the repo. The app then lists the folder via the GitHub API and
+cross-references each datasheet to the BOM using shop rules → part-number/text
 matching → an AI fallback.
 
 ## Adding or updating datasheets
