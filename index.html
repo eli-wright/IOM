@@ -170,6 +170,24 @@ select:focus{outline:none;border-color:var(--blue)}
 .foot-actions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap}
 .center{text-align:center;margin-top:18px}
 /* ---------- Overlays ---------- */
+/* ---------- Boot gate (datasheet preload) ---------- */
+.boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:var(--paper);
+  background-image:repeating-linear-gradient(0deg, rgba(22,33,43,.04) 0 1px, transparent 1px 28px),repeating-linear-gradient(90deg, rgba(22,33,43,.04) 0 1px, transparent 1px 28px);
+  transition:opacity .5s ease}
+.boot.done{opacity:0;pointer-events:none}
+.boot-card{width:min(460px,92vw);background:var(--card);border:2px solid var(--ink);box-shadow:8px 8px 0 rgba(22,33,43,.15);padding:30px 28px;text-align:center}
+.boot-logo{font-family:var(--display);font-weight:700;font-size:30px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink);line-height:1}
+.boot-logo .accent{color:var(--safety)}
+.boot-sub{margin-top:8px;color:var(--ink-2);font-size:13px;min-height:34px;display:flex;align-items:center;justify-content:center}
+.boot-bar{margin-top:14px;height:16px;border:1.5px solid var(--ink);background:#fff;overflow:hidden;position:relative}
+.boot-bar-fill{height:100%;width:0;background:var(--safety);transition:width .25s ease}
+.boot-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--ink-2);gap:12px}
+.boot-pct{font-weight:600;color:var(--ink);white-space:nowrap}
+.boot-detail{flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.boot-actions{margin-top:18px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.boot.err .boot-bar-fill{background:var(--bad)}
+.boot.err .boot-sub{color:var(--bad);font-weight:600}
 .overlay{position:fixed;inset:0;background:rgba(19,33,43,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60;padding:20px}
 .hidden{display:none!important}
 .spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,.25);border-top-color:var(--safety);border-radius:50%;animation:spin .9s linear infinite}
@@ -187,6 +205,16 @@ select:focus{outline:none;border-color:var(--blue)}
 </style>
 </head>
 <body>
+<!-- Boot gate: blocks the app until every datasheet has downloaded from the repo -->
+<div id="boot" class="boot">
+  <div class="boot-card">
+    <div class="boot-logo">IOM <span class="accent">Manual</span> Builder</div>
+    <div id="boot-sub" class="boot-sub">Starting up…</div>
+    <div class="boot-bar"><div id="boot-bar-fill" class="boot-bar-fill"></div></div>
+    <div class="boot-row"><span id="boot-pct" class="boot-pct">0%</span><span id="boot-detail" class="boot-detail"></span></div>
+    <div id="boot-actions" class="boot-actions hidden"></div>
+  </div>
+</div>
 <div class="wrap">
 
   <!-- Title block -->
@@ -340,6 +368,40 @@ function showLoading(t){ $("loading-text").textContent = t; $("loading").classLi
 function setLoading(t){ $("loading-text").textContent = t; }
 function hideLoading(){ $("loading").classList.add("hidden"); }
 function showMsg(body, title){ $("msg-title").textContent = title || "Notice"; $("msg-body").innerHTML = body; $("msg-overlay").classList.remove("hidden"); }
+
+/* ---- Boot gate: a full-screen progress screen that blocks the app until every
+   datasheet has finished downloading from the repository, then disappears. ---- */
+function setBootProgress(pct, detail, sub){
+  const b = $("boot");
+  if (!b || b.classList.contains("done")) return;
+  b.classList.remove("err");
+  pct = Math.max(0, Math.min(100, Math.round(pct)));
+  $("boot-bar-fill").style.width = pct + "%";
+  $("boot-pct").textContent = pct + "%";
+  if (detail != null) $("boot-detail").textContent = detail;
+  if (sub != null) $("boot-sub").textContent = sub;
+  $("boot-actions").classList.add("hidden");
+}
+function bootDone(){
+  const b = $("boot");
+  if (!b || b.classList.contains("done")) return;
+  $("boot-bar-fill").style.width = "100%";
+  $("boot-pct").textContent = "100%";
+  $("boot-detail").textContent = "";
+  $("boot-sub").textContent = "Ready";
+  b.classList.add("done");
+  setTimeout(() => { b.style.display = "none"; }, 600);   // remove from the layout after the fade
+}
+function bootError(msg, canContinue){
+  const b = $("boot");
+  if (!b || b.classList.contains("done")) return;
+  b.classList.add("err");
+  $("boot-sub").textContent = msg;
+  $("boot-pct").textContent = ""; $("boot-detail").textContent = "";
+  $("boot-actions").innerHTML = `<button class="btn btn-ghost" data-boot="retry"><i class="fas fa-rotate"></i> Retry</button>` +
+    (canContinue ? `<button class="btn btn-primary" data-boot="continue">Use the app anyway</button>` : "");
+  $("boot-actions").classList.remove("hidden");
+}
 $("msg-ok").addEventListener("click", () => $("msg-overlay").classList.add("hidden"));
 $("sum-ok").addEventListener("click", () => $("sum-overlay").classList.add("hidden"));
 
@@ -1239,8 +1301,8 @@ async function initLibrary(){
   libLoadPromise = null;
   libConfig = detectLibrary(location);
   if (!libConfig){
-    libStatus = "GitHub datasheet library is not configured.";
-    renderFileList();
+    libStatus = "The datasheet library isn't configured.";
+    renderFileList(); bootError(libStatus, true);
     return;
   }
   libStatus = "Loading datasheet list from GitHub…"; libIndex = [];
@@ -1254,30 +1316,44 @@ let libLoadPromise = null;
 function ensureLibraryLoaded(){
   if (libLoadPromise) return libLoadPromise;
   libLoadPromise = (async () => {
-    if (!libConfig) return;
+    if (!libConfig){ bootError("The datasheet library isn't configured.", true); return; }
+    setBootProgress(0, "", "Fetching the datasheet list…");
     if (!libIndex.length){
       try { libIndex = await fetchLibraryIndex(libConfig); }
-      catch(e){ libStatus = e.message || String(e); libIndex = []; renderFileList(); return; }
+      catch(e){ libStatus = e.message || String(e); libIndex = []; renderFileList(); bootError(libStatus, true); return; }
     }
     if (!libIndex.length){
-      libStatus = "No PDF datasheets found in the GitHub library folder yet.";
-      renderFileList(); return;
+      libStatus = "No PDF datasheets found in the repository folder yet.";
+      renderFileList(); bootError(libStatus, true); return;
     }
+    /* Byte-weighted progress so a big PDF advances the bar more than a tiny one. */
     const pending = libIndex.filter(f => !isLoadedName(f.name));
+    const totalBytes = Math.max(1, pending.reduce((s, f) => s + (f.size || 0), 0));
+    let doneBytes = 0;
     const failed = [];
+    setBootProgress(0, `0 / ${pending.length} datasheets`, "Loading datasheets from the repository…");
     for (let k = 0; k < pending.length; k++){
       const f = pending[k];
       libStatus = `Downloading datasheet ${k + 1}/${pending.length} — ${f.name}…`;
       renderFileList();
+      setBootProgress(doneBytes / totalBytes * 100, `${k} / ${pending.length} · ${f.name}`);
       try { handleDatasheetFiles([await fetchLibraryFile(f)], true); }
       catch(e){ failed.push(`${f.name} — ${e.message}`); }
+      doneBytes += (f.size || 0);
+      setBootProgress(doneBytes / totalBytes * 100, `${k + 1} / ${pending.length} datasheets`);
     }
     libStatus = failed.length
       ? `${state.datasheets.length} loaded — ${failed.length} failed to download.`
-      : `${libIndex.length} datasheet${libIndex.length === 1 ? "" : "s"} loaded automatically from GitHub.`;
+      : `${libIndex.length} datasheet${libIndex.length === 1 ? "" : "s"} loaded automatically from the repository.`;
     renderFileList(); updateUI();
-  })().catch(err => { libStatus = err.message || String(err); renderFileList(); })
-     .finally(() => { /* keep the resolved promise so callers don't re-trigger downloads */ });
+    if (failed.length && !state.datasheets.length){
+      bootError(`Could not download the datasheets (${failed.length} failed). Check your connection and retry.`, true);
+    } else {
+      if (failed.length) console.warn("Some datasheets failed to download:", failed);
+      setBootProgress(100, "", "Ready");
+      bootDone();
+    }
+  })().catch(err => { libStatus = err.message || String(err); renderFileList(); bootError(libStatus, true); });
   return libLoadPromise;
 }
 
@@ -1297,6 +1373,12 @@ function resetAll(){
 /* ============================== EVENTS ============================== */
 $("reset-btn").addEventListener("click", resetAll);
 $("job-number-input").addEventListener("input", e => { state.jobNumber = e.target.value.trim(); updateUI(); });
+$("boot-actions").addEventListener("click", e => {
+  const btn = e.target.closest("[data-boot]");
+  if (!btn) return;
+  if (btn.dataset.boot === "retry"){ setBootProgress(0, "", "Retrying…"); initLibrary(); }
+  else if (btn.dataset.boot === "continue"){ bootDone(); }
+});
 
 function wireDropZone(zone, input, browseBtn, handler, multiple){
   browseBtn.addEventListener("click", e => { e.stopPropagation(); input.click(); });

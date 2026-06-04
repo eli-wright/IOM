@@ -80,6 +80,12 @@ if (code) {
     errors.push("Datasheet manual-upload drop zone (ds-dz) is still wired up — it should be removed.");
   if (!/ensureLibraryLoaded\s*\(/.test(code))
     errors.push("ensureLibraryLoaded() is not called — datasheets won't auto-load.");
+
+  // Boot gate: must exist and must be able to dismiss, or the app could lock forever.
+  if (!/id="boot"/.test(html))
+    errors.push("Boot gate (#boot overlay) is missing from index.html.");
+  if (!/bootDone\s*\(/.test(code))
+    errors.push("bootDone() is never called — the loading gate would never dismiss.");
 }
 
 /* ---- Report -------------------------------------------------------------- */
