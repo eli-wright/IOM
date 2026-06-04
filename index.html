@@ -248,6 +248,11 @@ select:focus{outline:none;border-color:var(--blue)}
 .kv b{font-family:var(--mono)}
 .reveal{animation:rise .4s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ---------- Created-by footer ---------- */
+.created-by{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.created-by .cb-label{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3)}
+.created-by .cb-name{font-family:var(--display);font-weight:700;font-size:18px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+.created-by .cb-role{font-size:12px;color:var(--ink-2)}
 </style>
 </head>
 <body>
@@ -392,6 +397,12 @@ select:focus{outline:none;border-color:var(--blue)}
 
     </main>
   </div>
+
+  <footer class="created-by">
+    <span class="cb-label">Created by</span>
+    <span class="cb-name">Eli Wright</span>
+    <span class="cb-role">Engineering Manager</span>
+  </footer>
 </div>
 
 <!-- Loading overlay -->
