@@ -869,13 +869,9 @@ function renderReview(){
   renderUnusedNote();
 }
 function renderUnusedNote(){
-  const used = new Set(qualifiedItems().map(i => i.assignedFile).filter(Boolean));
-  const unused = state.datasheets.filter(f => !used.has(f.name));
-  const el = $("unused-note");
-  if (state.assigned && unused.length){
-    el.classList.remove("hidden");
-    el.innerHTML = `<b>${unused.length} datasheet${unused.length === 1 ? " was" : "s were"} not assigned to anything:</b> ${unused.map(f => esc(f.name)).join(" · ")}`;
-  } else el.classList.add("hidden");
+  /* The full datasheet catalog auto-loads from the repo, so most sheets are
+     legitimately unused for any given BOM — listing them is just noise. */
+  $("unused-note").classList.add("hidden");
 }
 
 /* ============================== FILE HANDLING ============================== */
@@ -1297,15 +1293,12 @@ async function generateManual(){
 
     /* Summary */
     const missing = q.filter(i => !i.assignedFile || !getFile(i.assignedFile));
-    const used = new Set(q.map(i => i.assignedFile).filter(Boolean));
-    const unused = state.datasheets.filter(f => !used.has(f.name));
     let html = `<div class="kv"><span>File</span><b>${esc(safeJob)}-IOM.pdf</b></div>
       <div class="kv"><span>Total pages</span><b>${totalPages}</b></div>
       <div class="kv"><span>Component sections</span><b>${sections.length}</b></div>
       <div class="kv"><span>Cover manual</span><b>${coverEntry ? "Included" : "—"}</b></div>`;
     if (skipped.length) html += `<p style="margin-top:12px;color:var(--bad)"><b><i class="fas fa-triangle-exclamation"></i> Skipped (unreadable PDFs):</b></p><ul>${skipped.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
     if (missing.length) html += `<p style="margin-top:12px;color:var(--amber)"><b>Items without a datasheet (left out):</b></p><ul>${missing.map(i => `<li>${esc(i.description)}</li>`).join("")}</ul>`;
-    if (unused.length) html += `<p style="margin-top:12px;color:var(--ink-2)"><b>Unused datasheets:</b> ${unused.map(f => esc(f.name)).join(" · ")}</p>`;
     $("sum-body").innerHTML = html;
     $("sum-overlay").classList.remove("hidden");
   } catch(err){
