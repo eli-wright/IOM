@@ -652,15 +652,21 @@ function mfgFromFilename(name){
 }
 function getManufacturerFromRules(partNumber, description){
   const descLower = lc(description);
+  /* A brand named in the description always wins over part-number heuristics
+     (e.g. "HANSEN FLOAT SWITCH … LLSS" is Hansen, even though LLSS looks Parker). */
   if (descLower.includes("jwt")) return "JWT";
-  if (descLower.includes("level eye")) return "H.A. Phillips";
+  if (descLower.includes("hansen")) return "Hansen";
+  if (descLower.includes("danfoss")) return "Danfoss";
   if (descLower.includes("teikoku")) return "Teikoku";
   if (descLower.includes("cornell")) return "Cornell";
-  if (descLower.includes("parker") || descLower.includes("refrigerating specialties")) return "Parker";
+  if (descLower.includes("apollo")) return "Apollo";
+  if (descLower.includes("cyrus")) return "Cyrus Shank";
+  if (descLower.includes("phillips") || descLower.includes("level eye")) return "H.A. Phillips";
+  if (descLower.includes("parker") || descLower.includes("refrigerating specialties") || /\br\/s\b/.test(descLower)) return "Parker";
   if (!partNumber) return null;
   const pn = String(partNumber).toUpperCase();
 
-  const parkerPrefixes = ["SGY","SGT","SAN","S4A","SRH","SRLQ","SR1R","SR-","L-","M1-","XAN","A2BK","CK4A","PEV","RSF","HEV"];
+  const parkerPrefixes = ["SGY","SGT","SAN","S4A","SRH","SRLQ","SR1R","SR2","SR3","SR-","L-","M1-","XAN","A2BK","CK4","PEV","RSF","HEV"];
   const parkerModels = ["107015","107016","107017","107020"];
   if (parkerPrefixes.some(p => pn.startsWith(p)) || parkerModels.some(m => pn.includes(m)) || pn.startsWith("530-") || pn.includes("LLSS"))
     return "Parker";
