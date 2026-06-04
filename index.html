@@ -1,722 +1,1427 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IOM Manual Builder</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Poppins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- pdf-lib for PDF manipulation -->
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib/dist/pdf-lib.min.js"></script>
-    <!-- SheetJS for XLSX parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <!-- pdf.js for PDF text extraction -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;</script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #F3F4F6;
-        }
-        .step-card {
-            transition: all 0.3s ease-in-out;
-            position: relative;
-        }
-        .step-locked::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(249, 250, 251, 0.6);
-            backdrop-filter: blur(2px);
-            border-radius: 0.75rem;
-            z-index: 10;
-        }
-        .drop-zone {
-            border: 2px dashed #9CA3AF;
-            border-radius: 0.75rem;
-            padding: 2.5rem 1rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background-color: #F9FAFB;
-        }
-        .drop-zone.dragover {
-            background-color: #E0F2FE;
-            border-color: #0284C7;
-        }
-        .loader {
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #3B82F6;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        @keyframes pulse {
-            50% {
-                box-shadow: 0 0 0 0.5rem rgba(59, 130, 246, 0.4);
-            }
-        }
-        .step-indicator.active .indicator-circle {
-            animation: pulse 1.5s infinite;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IOM Manual Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<!-- pdf.js worker is bootstrapped as a real Worker thread inside the app script (see "PDF.JS - REAL WORKER") -->
+<style>
+:root{
+  --paper:#f2efe8; --card:#fcfbf7; --ink:#16212b; --ink-2:#4d5a64; --ink-3:#8a958f;
+  --line:#d5cfc1; --line-strong:#b9b2a1;
+  --blue:#0c5aa6; --blue-deep:#0a4a89; --navy:#13344f;
+  --safety:#e4641c; --ok:#1c7a4b; --bad:#b3361f; --amber:#9a6b0a;
+  --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  --body:'Barlow','Helvetica Neue',Helvetica,Arial,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,'Courier New',monospace;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:var(--body); color:var(--ink); background:var(--paper);
+  background-image:
+    linear-gradient(var(--paper) 0 0),
+    repeating-linear-gradient(0deg, rgba(22,33,43,.045) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(90deg, rgba(22,33,43,.045) 0 1px, transparent 1px 28px);
+  background-blend-mode:normal,normal,normal;
+  background-color:var(--paper);
+}
+body{background:
+  repeating-linear-gradient(0deg, rgba(22,33,43,.04) 0 1px, transparent 1px 28px),
+  repeating-linear-gradient(90deg, rgba(22,33,43,.04) 0 1px, transparent 1px 28px),
+  var(--paper);}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+/* ---------- Title block ---------- */
+.titleblock{
+  display:flex;justify-content:space-between;align-items:stretch;gap:16px;
+  border:2px solid var(--ink); background:var(--card);
+  box-shadow:6px 6px 0 rgba(22,33,43,.12); margin-bottom:26px;
+}
+.titleblock .tb-main{padding:18px 22px;border-right:2px solid var(--ink);flex:1}
+.titleblock h1{font-family:var(--display);font-weight:700;font-size:42px;letter-spacing:.04em;margin:0;line-height:1;text-transform:uppercase}
+.titleblock h1 .accent{color:var(--safety)}
+.titleblock .sub{margin:6px 0 0;color:var(--ink-2);font-size:14px;letter-spacing:.02em}
+.tb-side{display:flex;flex-direction:column;justify-content:space-between;min-width:190px}
+.tb-cell{padding:8px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em}
+.tb-cell b{display:block;font-family:var(--mono);font-size:13px;color:var(--ink);letter-spacing:0;text-transform:none;margin-top:2px}
+.tb-side .reset-row{padding:10px 14px;border-bottom:none}
+.btn{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-weight:600;
+  border:2px solid var(--ink);background:var(--card);color:var(--ink);padding:10px 18px;font-size:16px;
+  cursor:pointer;transition:transform .12s, box-shadow .12s, background .12s;box-shadow:3px 3px 0 rgba(22,33,43,.25)}
+.btn:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:4px 4px 0 rgba(22,33,43,.3)}
+.btn:active:not(:disabled){transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(22,33,43,.3)}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.btn-primary{background:var(--blue);border-color:var(--blue-deep);color:#fff}
+.btn-primary:hover:not(:disabled){background:var(--blue-deep)}
+.btn-go{background:var(--ok);border-color:#145c38;color:#fff;font-size:18px;padding:12px 26px}
+.btn-warn{background:var(--safety);border-color:#b34c13;color:#fff}
+.btn-ghost{box-shadow:none;border-width:1px;border-color:var(--line-strong);font-size:13px;padding:6px 12px}
+.btn-danger-ghost{box-shadow:none;border-width:1px;border-color:var(--bad);color:var(--bad);font-size:13px;padding:6px 12px}
+/* ---------- Layout ---------- */
+.cols{display:flex;gap:28px;align-items:flex-start}
+.rail{width:230px;flex-shrink:0;position:sticky;top:24px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;gap:26px}
+@media (max-width:900px){.cols{flex-direction:column}.rail{position:static;width:100%;display:flex;gap:10px}.rail .step{flex:1}.rail .step .desc{display:none}.rail .step .bar{display:none}}
+/* ---------- Step rail ---------- */
+.step{display:flex;gap:12px;margin-bottom:6px}
+.step .marker{width:42px;height:42px;flex-shrink:0;border:2px solid var(--line-strong);background:var(--card);
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:20px;color:var(--ink-3);
+  clip-path:polygon(0 0,100% 0,100% 75%,75% 100%,0 100%);transition:all .25s}
+.step .bar{width:2px;background:var(--line-strong);margin:4px auto 0;flex:1;min-height:26px}
+.step .col{display:flex;flex-direction:column;align-items:center}
+.step h3{margin:2px 0 2px;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-3)}
+.step .desc{margin:0;font-size:12.5px;color:var(--ink-3)}
+.step.active .marker{border-color:var(--safety);color:var(--safety);animation:pulse 1.6s infinite}
+.step.active h3{color:var(--ink)}
+.step.active .desc{color:var(--ink-2)}
+.step.done .marker{background:var(--ok);border-color:#145c38;color:#fff}
+.step.done h3{color:var(--ink-2)}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(228,100,28,.18)}}
+/* ---------- Cards ---------- */
+.card{background:var(--card);border:1.5px solid var(--ink);box-shadow:5px 5px 0 rgba(22,33,43,.10);position:relative;transition:filter .3s,opacity .3s}
+.card .hd{padding:16px 22px;border-bottom:1.5px solid var(--ink);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.card .hd h2{margin:0;font-family:var(--display);font-size:26px;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.card .hd h2 .num{color:var(--safety);margin-right:8px}
+.card .hd .hint{font-size:13px;color:var(--ink-2)}
+.card .bd{padding:20px 22px}
+.card.locked{pointer-events:none;filter:grayscale(.6);opacity:.55}
+.card.locked::after{content:'LOCKED';position:absolute;top:14px;right:16px;font-family:var(--display);font-size:12px;letter-spacing:.2em;color:var(--ink-3);border:1px solid var(--line-strong);padding:2px 8px}
+/* ---------- Inputs / dropzones ---------- */
+label.field{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-2);margin-bottom:6px;font-weight:600}
+input[type=text]{font-family:var(--mono);font-size:16px;padding:10px 12px;border:1.5px solid var(--ink);background:#fff;width:100%;max-width:340px;outline:none}
+input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(12,90,166,.15)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media (max-width:760px){.grid2{grid-template-columns:1fr}}
+.dz{border:2px dashed var(--line-strong);background:rgba(255,255,255,.55);padding:26px 14px;text-align:center;cursor:pointer;transition:all .15s;min-height:150px;display:flex;flex-direction:column;justify-content:center}
+.dz:hover{border-color:var(--blue)}
+.dz.dragover{border-color:var(--safety);background:rgba(228,100,28,.07)}
+.dz i.big{font-size:34px;color:var(--ink-3);margin-bottom:8px}
+.dz .t1{font-weight:600}
+.dz .t2{font-size:12px;color:var(--ink-3);margin:4px 0}
+.dz .ok-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(28,122,75,.1);border:1px solid var(--ok);color:var(--ok);padding:8px 12px;font-size:13px;font-weight:600;max-width:100%}
+.dz .ok-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.section-label{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.section-label .tag{font-family:var(--body);font-size:11px;letter-spacing:.05em;background:var(--ink);color:#fff;padding:1px 7px}
+.note{font-size:12.5px;color:var(--ink-2);background:rgba(12,90,166,.06);border-left:3px solid var(--blue);padding:8px 12px;margin-top:12px}
+.note.warn{background:rgba(154,107,10,.07);border-color:var(--amber)}
+/* ---------- Table ---------- */
+table{width:100%;border-collapse:collapse;font-size:14px;background:#fff}
+.tbl-wrap{border:1.5px solid var(--ink);overflow-x:auto;margin-top:10px}
+th{font-family:var(--display);text-transform:uppercase;letter-spacing:.06em;font-size:13px;text-align:left;padding:9px 12px;background:var(--navy);color:#fff;font-weight:600;white-space:nowrap}
+td{padding:9px 12px;border-top:1px solid var(--line);vertical-align:top}
+tr:hover td{background:rgba(12,90,166,.045)}
+td .mono, .mono{font-family:var(--mono);font-size:12.5px}
+td .idx{font-family:var(--mono);color:var(--ink-3)}
+.icon-btn{border:none;background:none;cursor:pointer;color:var(--ink-3);font-size:14px;padding:4px}
+.icon-btn:hover{color:var(--bad)}
+/* ---------- Excluded ---------- */
+details.excluded{margin-top:14px;border:1px dashed var(--line-strong);background:rgba(255,255,255,.4)}
+details.excluded summary{cursor:pointer;padding:10px 14px;font-weight:600;font-size:13.5px;color:var(--ink-2);user-select:none}
+details.excluded .x-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line);font-size:13px}
+.x-row .why{font-size:11px;color:#fff;background:var(--ink-3);padding:1px 7px;letter-spacing:.03em;white-space:nowrap}
+.x-row button{border:1px solid var(--ok);color:var(--ok);background:none;font-size:12px;padding:3px 10px;cursor:pointer}
+.x-row button:hover{background:rgba(28,122,75,.08)}
+/* ---------- File list ---------- */
+ul.files{list-style:none;margin:0;padding:8px;border:1.5px solid var(--ink);background:#fff;max-height:300px;overflow-y:auto}
+ul.files li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-bottom:1px solid var(--line);font-size:13.5px}
+ul.files li:last-child{border-bottom:none}
+ul.files li .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ul.files li.cover{background:rgba(228,100,28,.08);border-left:4px solid var(--safety)}
+ul.files li.cover .name{font-weight:600}
+.crown{color:var(--line-strong)} .crown.on{color:var(--safety)}
+.crown:hover{color:var(--safety)}
+/* ---------- Online library ---------- */
+.lib{margin-top:12px;border:1.5px solid var(--ink);background:rgba(255,255,255,.55)}
+.lib-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);font-family:var(--display);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:14px;flex-wrap:wrap}
+.lib-head .src{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--ink-3);text-transform:none;letter-spacing:0}
+.lib ul.files{border:none;max-height:210px;margin:0}
+.lib .size{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
+.lib .lib-add{border:1px solid var(--blue);color:var(--blue);background:none;font-size:12px;padding:2px 9px;cursor:pointer;white-space:nowrap}
+.lib .lib-add:hover{background:rgba(12,90,166,.08)}
+.lib .loaded-chip{color:var(--ok);font-size:12px;white-space:nowrap}
+.lib-empty{padding:10px;color:var(--ink-3);font-size:13px;list-style:none}
+/* ---------- Badges / review ---------- */
+.badge{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border:1px solid}
+.badge.rule{color:var(--blue);border-color:var(--blue);background:rgba(12,90,166,.07)}
+.badge.match{color:var(--ok);border-color:var(--ok);background:rgba(28,122,75,.07)}
+.badge.ai{color:#6b3fa0;border-color:#6b3fa0;background:rgba(107,63,160,.07)}
+.badge.manual{color:var(--amber);border-color:var(--amber);background:rgba(154,107,10,.07)}
+.badge.none{color:var(--bad);border-color:var(--bad);background:rgba(179,54,31,.06)}
+.rev{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:14px;align-items:center;padding:13px 14px;border:1px solid var(--line);background:#fff;margin-bottom:10px;border-left:5px solid var(--line-strong)}
+.rev.has{border-left-color:var(--ok)}
+.rev.missing{border-left-color:var(--bad)}
+@media (max-width:760px){.rev{grid-template-columns:1fr}}
+.rev .ttl{font-weight:600;font-size:14.5px}
+.rev .meta{font-size:12px;color:var(--ink-2);margin-top:3px}
+select{width:100%;font-family:var(--body);font-size:13px;padding:8px 10px;border:1.5px solid var(--line-strong);background:#fff}
+select:focus{outline:none;border-color:var(--blue)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;border:1px solid var(--line-strong);padding:3px 9px;color:var(--ink-2);background:#fff}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.chip.ok .dot{background:var(--ok)} .chip.off .dot{background:var(--bad)}
+.opts{display:flex;flex-wrap:wrap;gap:14px 22px;margin:14px 0 4px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.6)}
+.opts label{display:flex;align-items:center;gap:7px;font-size:13.5px;cursor:pointer}
+.opts input{accent-color:var(--blue);width:15px;height:15px}
+.foot-actions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+.center{text-align:center;margin-top:18px}
+/* ---------- Overlays ---------- */
+.overlay{position:fixed;inset:0;background:rgba(19,33,43,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60;padding:20px}
+.hidden{display:none!important}
+.spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,.25);border-top-color:var(--safety);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading-text{color:#fff;font-size:16px;margin-top:16px;max-width:560px;text-align:center;font-family:var(--mono)}
+.modal{background:var(--card);border:2px solid var(--ink);box-shadow:8px 8px 0 rgba(0,0,0,.3);max-width:560px;width:100%;max-height:84vh;overflow-y:auto}
+.modal .mhd{padding:14px 20px;border-bottom:2px solid var(--ink);font-family:var(--display);font-size:20px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.modal .mbd{padding:18px 20px;font-size:14px;line-height:1.55}
+.modal .mft{padding:12px 20px;border-top:1px solid var(--line);text-align:right}
+.modal ul{margin:6px 0;padding-left:20px}
+.kv{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:5px 0;font-size:13.5px}
+.kv b{font-family:var(--mono)}
+.reveal{animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
 </head>
-<body class="text-gray-800">
+<body>
+<div class="wrap">
 
-    <div class="max-w-7xl mx-auto p-4 sm:p-8">
-        <header class="text-center mb-12 relative">
-            <h1 class="text-5xl font-bold text-gray-800">IOM Manual Builder</h1>
-            <p class="text-xl text-gray-500 mt-2">A streamlined tool for creating professional IOM packages.</p>
-            <button id="reset-btn" class="absolute top-0 right-0 bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-all shadow hover:shadow-lg text-sm">
-                <i class="fas fa-sync-alt mr-2"></i>Reset
-            </button>
-        </header>
+  <!-- Title block -->
+  <header class="titleblock">
+    <div class="tb-main">
+      <h1>IOM <span class="accent">Manual</span> Builder</h1>
+      <p class="sub">Assemble Installation, Operation &amp; Maintenance packages from a BOM and component datasheets.</p>
+    </div>
+    <div class="tb-side">
+      <div class="tb-cell">Job No. <b id="tb-job">—</b></div>
+      <div class="tb-cell">Date <b id="tb-date">—</b></div>
+      <div class="tb-cell reset-row"><button id="reset-btn" class="btn btn-danger-ghost" title="Clear everything and start over"><i class="fas fa-rotate-left"></i> Reset</button></div>
+    </div>
+  </header>
 
-        <section id="job-number-section" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg mb-10">
-            <h2 class="text-3xl font-bold mb-1 text-gray-700">Project Details</h2>
-            <p class="text-gray-500 mb-6">Enter the Job Number to unlock the steps below.</p>
+  <!-- Project details -->
+  <section class="card reveal" id="job-card">
+    <div class="hd"><h2>Project Details</h2><span class="hint">Enter the job number to unlock the workflow.</span></div>
+    <div class="bd">
+      <label class="field" for="job-number-input">Job Number</label>
+      <input type="text" id="job-number-input" placeholder="e.g. J24-12345" autocomplete="off" spellcheck="false">
+    </div>
+  </section>
+
+  <div class="cols">
+    <!-- Step rail -->
+    <aside class="rail">
+      <div class="step" id="step-1">
+        <div class="col"><div class="marker">1</div><div class="bar"></div></div>
+        <div><h3>Bill of Materials</h3><p class="desc">Upload BOM &amp; datasheets, then process.</p></div>
+      </div>
+      <div class="step" id="step-2">
+        <div class="col"><div class="marker">2</div><div class="bar"></div></div>
+        <div><h3>Assign Datasheets</h3><p class="desc">Rules → text match → AI fallback.</p></div>
+      </div>
+      <div class="step" id="step-3">
+        <div class="col"><div class="marker">3</div></div>
+        <div><h3>Review &amp; Build</h3><p class="desc">Verify, set options, generate PDF.</p></div>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- STEP 1 -->
+      <section class="card locked" id="card-1">
+        <div class="hd"><h2><span class="num">01</span>Upload &amp; Process BOM</h2><span class="hint">CSV, XLSX, or PDF bill of materials + all datasheet PDFs.</span></div>
+        <div class="bd">
+          <div class="grid2">
             <div>
-                <label for="job-number-input" class="block text-sm font-medium text-gray-700 mb-2">Job Number</label>
-                <input type="text" id="job-number-input" placeholder="e.g., J24-12345" class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-            </div>
-        </section>
-
-        <div class="flex flex-col lg:flex-row gap-8 lg:gap-12">
-            <!-- Vertical Step Indicators -->
-            <aside class="lg:w-1/4">
-                <div class="sticky top-8">
-                    <ol class="space-y-8">
-                        <!-- Step 1 -->
-                        <li id="step-1-indicator" class="step-indicator flex items-start">
-                            <div class="flex flex-col items-center mr-4">
-                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">1</div>
-                                <div class="h-full w-0.5 bg-gray-300 mt-2"></div>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-lg text-gray-400">Bill of Materials</h3>
-                                <p class="text-gray-500">Upload BOM & datasheets.</p>
-                            </div>
-                        </li>
-                        <!-- Step 2 -->
-                        <li id="step-2-indicator" class="step-indicator flex items-start">
-                            <div class="flex flex-col items-center mr-4">
-                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">2</div>
-                                <div class="h-full w-0.5 bg-gray-300 mt-2"></div>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-lg text-gray-400">Assign Datasheets</h3>
-                                <p class="text-gray-500">Match files to parts.</p>
-                            </div>
-                        </li>
-                        <!-- Step 3 -->
-                        <li id="step-3-indicator" class="step-indicator flex items-start">
-                            <div class="flex flex-col items-center mr-4">
-                                <div class="indicator-circle bg-gray-300 text-gray-500 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">3</div>
-                            </div>
-                            <div>
-                                <h3 class="font-semibold text-lg text-gray-400">Review & Combine</h3>
-                                <p class="text-gray-500">Generate your manual.</p>
-                            </div>
-                        </li>
-                    </ol>
+              <p class="section-label"><span class="tag">A</span> Bill of Materials</p>
+              <div class="dz" id="bom-dz">
+                <div id="bom-prompt">
+                  <i class="fas fa-file-invoice big"></i>
+                  <p class="t1">Drag &amp; drop BOM file</p>
+                  <p class="t2">.csv · .xlsx · .pdf — or</p>
+                  <button class="btn btn-ghost" id="bom-browse">Browse…</button>
                 </div>
-            </aside>
-            
-            <main class="flex-1 space-y-10">
-                <!-- Section 1: Bill of Materials & Datasheets -->
-                <section id="bom-section" class="step-card step-locked bg-white p-6 sm:p-8 rounded-xl shadow-lg">
-                    <h2 class="text-3xl font-bold mb-1 text-gray-700">Step 1: Upload & Process BOM</h2>
-                    <p class="text-gray-500 mb-6">Upload your Bill of Materials and all related datasheets to begin.</p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- BOM Upload -->
-                        <div>
-                            <h3 class="font-semibold text-xl mb-3 text-gray-700">1. Bill of Materials</h3>
-                             <div id="bom-drop-zone" class="drop-zone">
-                                <div id="bom-drop-prompt">
-                                    <i class="fas fa-file-invoice text-5xl text-gray-400 mb-4"></i>
-                                    <p class="font-semibold text-lg">Drag & drop BOM file</p>
-                                    <p class="text-gray-500 my-1">or</p>
-                                    <button id="bom-browse-files-btn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 shadow">Browse</button>
-                                </div>
-                                <div id="bom-file-display" class="hidden"></div>
-                                <input type="file" id="bom-file-input" class="hidden" accept=".csv,.xlsx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf">
-                            </div>
-                        </div>
+                <div id="bom-loaded" class="hidden"></div>
+                <input type="file" id="bom-input" class="hidden" accept=".csv,.xlsx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf">
+              </div>
+            </div>
+            <div>
+              <p class="section-label"><span class="tag">B</span> Datasheets &amp; Cover Manual <span style="font-weight:400;font-size:12px;color:var(--ink-3)">(PDF)</span></p>
+              <div class="dz" id="ds-dz">
+                <div id="ds-prompt">
+                  <i class="fas fa-file-pdf big" style="color:#c0564a"></i>
+                  <p class="t1">Drag &amp; drop PDFs</p>
+                  <p class="t2">multiple files allowed — or</p>
+                  <button class="btn btn-ghost" id="ds-browse">Browse…</button>
+                </div>
+                <div id="ds-loaded" class="hidden"></div>
+                <input type="file" id="ds-input" class="hidden" multiple accept=".pdf,application/pdf">
+              </div>
+              <div id="lib-panel" class="lib hidden">
+                <div class="lib-head">
+                  <span><i class="fas fa-cloud-arrow-down"></i>&nbsp;Online Library <span class="src" id="lib-src"></span></span>
+                  <span style="display:flex;align-items:center;gap:6px">
+                    <button class="icon-btn" id="lib-refresh" title="Refresh file list"><i class="fas fa-rotate"></i></button>
+                    <button class="btn btn-ghost" id="lib-load-all" disabled><i class="fas fa-download"></i> Load all</button>
+                  </span>
+                </div>
+                <ul class="files" id="lib-list"></ul>
+              </div>
+            </div>
+          </div>
 
-                        <!-- Datasheet Upload -->
-                        <div>
-                             <h3 class="font-semibold text-xl mb-3 text-gray-700">2. All Datasheets (PDF)</h3>
-                             <div id="submittals-drop-zone" class="drop-zone">
-                                <div id="submittals-drop-prompt">
-                                    <i class="fas fa-file-pdf text-5xl text-red-400 mb-4"></i>
-                                    <p class="font-semibold text-lg">Drag & drop PDFs</p>
-                                    <p class="text-gray-500 my-1">or</p>
-                                    <button id="submittals-browse-btn" class="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 shadow">Browse</button>
-                                </div>
-                                <div id="submittals-file-display" class="hidden text-left"></div>
-                                <input type="file" id="submittals-file-input" class="hidden" multiple accept=".pdf">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-8 text-center">
-                        <button id="process-bom-btn" class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-3 px-8 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg hover:shadow-xl text-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                            <i class="fas fa-cogs mr-2"></i>Process BOM
-                        </button>
-                    </div>
+          <div class="center">
+            <button id="process-btn" class="btn btn-primary" disabled><i class="fas fa-gears"></i>&nbsp; Process BOM</button>
+          </div>
 
-                    <div id="bom-preview-container" class="mt-8 hidden">
-                        <h3 class="font-semibold text-xl mb-3">Qualified BOM Items:</h3>
-                        <div class="overflow-x-auto rounded-lg border">
-                            <table class="min-w-full bg-white">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="text-left py-3 px-4 font-semibold text-sm">#</th>
-                                        <th class="text-left py-3 px-4 font-semibold text-sm">Description</th>
-                                        <th class="text-left py-3 px-4 font-semibold text-sm">Manufacturer</th>
-                                        <th class="text-left py-3 px-4 font-semibold text-sm">Part Number</th>
-                                        <th class="text-left py-3 px-4 font-semibold text-sm">Remove</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="bom-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Section 2: Submittals -->
-                <section id="submittals-section" class="step-card step-locked">
-                    <div class="p-6 sm:p-8 rounded-xl bg-white shadow-lg">
-                        <h2 class="text-3xl font-bold mb-1 text-gray-700">Step 2: Assign Datasheets</h2>
-                        <p class="text-gray-500 mb-6">Confirm datasheets, then use the AI to auto-assign them to the BOM items.</p>
-                        
-                        <div id="submittals-preview-container" class="mt-6">
-                            <h3 class="font-semibold text-xl mb-3">Uploaded Datasheets:</h3>
-                            <ul id="file-list" class="space-y-2 max-h-60 overflow-y-auto pr-2 bg-gray-50 p-4 rounded-lg border"></ul>
-                        </div>
-                        
-                        <div class="mt-6 text-center">
-                            <button id="auto-assign-btn" class="bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-bold py-3 px-8 rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg hover:shadow-xl text-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <i class="fas fa-brain mr-2"></i>Auto-Assign Files
-                            </button>
-                        </div>
-                    </div>
-                </section>
-                
-                <!-- Section 3: Review and Combine -->
-                <section id="review-section" class="step-card step-locked">
-                    <div class="p-6 sm:p-8 rounded-xl bg-white shadow-lg">
-                         <h2 class="text-3xl font-bold text-gray-700">Step 3: Review & Combine</h2>
-                         <p class="text-gray-500 mb-6">Review the agent's assignments and generate your manual.</p>
-                        <div id="review-list" class="space-y-4"></div>
-                        <div class="flex justify-end mt-8">
-                            <button id="generate-btn" class="bg-gradient-to-r from-green-500 to-teal-500 text-white font-bold py-4 px-10 rounded-lg hover:from-green-600 hover:to-teal-600 transition text-lg flex items-center shadow-lg hover:shadow-xl" disabled>
-                                <i class="fas fa-file-archive mr-3"></i>Generate IOM Manual
-                            </button>
-                        </div>
-                    </div>
-                </section>
-            </main>
+          <div id="bom-results" class="hidden">
+            <div id="col-note" class="note hidden"></div>
+            <p class="section-label" style="margin-top:18px">Qualified BOM Items <span id="qual-count" class="tag"></span></p>
+            <div class="tbl-wrap">
+              <table>
+                <thead><tr><th style="width:42px">#</th><th>Description</th><th>Manufacturer</th><th>Part Number</th><th style="width:50px"></th></tr></thead>
+                <tbody id="bom-tbody"></tbody>
+              </table>
+            </div>
+            <details class="excluded" id="excluded-box">
+              <summary id="excluded-summary">Excluded items (0)</summary>
+              <div id="excluded-list"></div>
+            </details>
+          </div>
         </div>
-    </div>
-        
-    <!-- Modals -->
-    <div id="loading-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex flex-col items-center justify-center z-50">
-        <div class="loader"></div>
-        <p id="loading-text" class="text-white text-xl mt-4"></p>
-    </div>
-    <div id="message-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm">
-            <p id="message-text" class="text-lg mb-6"></p>
-            <button id="message-ok-btn" class="bg-blue-500 text-white font-bold py-2 px-10 rounded-lg hover:bg-blue-600 transition">OK</button>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="card locked" id="card-2">
+        <div class="hd"><h2><span class="num">02</span>Assign Datasheets</h2>
+          <span class="chip" id="ai-chip" title="AI fallback runs only for items the rules and text matching can't resolve."><span class="dot"></span><span id="ai-chip-text">AI assist: ready</span></span>
         </div>
-    </div>
+        <div class="bd">
+          <p class="section-label">Datasheet Library <span style="font-weight:400;font-size:12px;color:var(--ink-3)">— click <i class="fas fa-crown" style="color:var(--safety)"></i> to set a file as the cover manual</span></p>
+          <ul class="files" id="file-list"></ul>
+          <div class="center">
+            <button id="assign-btn" class="btn btn-warn" disabled><i class="fas fa-wand-magic-sparkles"></i>&nbsp; Auto-Assign Datasheets</button>
+          </div>
+          <div class="note" style="margin-top:16px"><b>How matching works:</b> exact shop rules run first (Parker, Hansen, Danfoss, Teikoku, Cyrus Shank…), then part numbers and descriptions are matched against filenames and the extracted text of each PDF. Anything still unresolved is sent to the AI in one batch.</div>
+        </div>
+      </section>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const { PDFDocument } = PDFLib;
-            const pdfjsLib = window['pdfjs-dist/build/pdf'];
+      <!-- STEP 3 -->
+      <section class="card locked" id="card-3">
+        <div class="hd"><h2><span class="num">03</span>Review &amp; Build</h2><span class="hint">Override any assignment, then generate the package.</span></div>
+        <div class="bd">
+          <div id="review-list"></div>
+          <div id="unused-note" class="note warn hidden"></div>
+          <div class="opts">
+            <label><input type="checkbox" id="opt-title" checked> Title page</label>
+            <label><input type="checkbox" id="opt-toc" checked> Table of contents</label>
+            <label><input type="checkbox" id="opt-div" checked> Section divider pages</label>
+            <label title="Stamps small page numbers on every page — may overlap existing footers."><input type="checkbox" id="opt-pn"> Stamp page numbers</label>
+          </div>
+          <div class="foot-actions">
+            <span id="gen-status" style="font-size:12.5px;color:var(--ink-2)"></span>
+            <button id="generate-btn" class="btn btn-go" disabled><i class="fas fa-file-pdf"></i>&nbsp; Generate IOM Manual</button>
+          </div>
+        </div>
+      </section>
 
-            const appState = {
-                jobNumber: '',
-                bomFile: null,
-                bomItems: [],
-                submittalFiles: [],
-                coverManualFile: null,
-                pdfTextCache: new Map(),
-                assignmentCompleted: false,
-            };
+    </main>
+  </div>
+</div>
 
-            // DOM Elements
-            const jobNumberInput = document.getElementById('job-number-input');
-            const resetBtn = document.getElementById('reset-btn');
-            const bomDropZone = document.getElementById('bom-drop-zone');
-            const bomFileInput = document.getElementById('bom-file-input');
-            const bomTableBody = document.getElementById('bom-table-body');
-            const bomPreviewContainer = document.getElementById('bom-preview-container');
-            const submittalsDropZone = document.getElementById('submittals-drop-zone');
-            const submittalsBrowseBtn = document.getElementById('submittals-browse-btn');
-            const submittalsFileInput = document.getElementById('submittals-file-input');
-            const fileList = document.getElementById('file-list');
-            const processBomBtn = document.getElementById('process-bom-btn');
-            const autoAssignBtn = document.getElementById('auto-assign-btn');
-            const reviewList = document.getElementById('review-list');
-            const generateBtn = document.getElementById('generate-btn');
-            const loadingModal = document.getElementById('loading-modal');
-            const loadingText = document.getElementById('loading-text');
-            const messageModal = document.getElementById('message-modal');
-            const messageText = document.getElementById('message-text');
-            const messageOkBtn = document.getElementById('message-ok-btn');
-            const stepIndicators = {
-                1: document.getElementById('step-1-indicator'),
-                2: document.getElementById('step-2-indicator'),
-                3: document.getElementById('step-3-indicator'),
-            };
+<!-- Loading overlay -->
+<div id="loading" class="overlay hidden"><div class="spinner"></div><p id="loading-text"></p></div>
 
-            const showMessage = (message) => {
-                messageText.textContent = message;
-                messageModal.classList.remove('hidden');
-            };
-            const hideMessage = () => messageModal.classList.add('hidden');
-            
-            const updateUI = () => {
-                const jobNumberEntered = appState.jobNumber.length > 0;
-                const bomUploaded = appState.bomFile !== null;
-                const submittalsUploaded = appState.submittalFiles.length > 0 || appState.coverManualFile !== null;
-                const bomProcessed = appState.bomItems.length > 0;
-                const assignmentCompleted = appState.assignmentCompleted;
-                
-                const eligibleBomItems = appState.bomItems.filter(i => i.eligible);
-                const hasContentToGenerate = eligibleBomItems.some(item => item.submittalFile) || appState.coverManualFile;
+<!-- Message modal -->
+<div id="msg-overlay" class="overlay hidden">
+  <div class="modal">
+    <div class="mhd" id="msg-title">Notice</div>
+    <div class="mbd" id="msg-body"></div>
+    <div class="mft"><button class="btn btn-ghost" id="msg-ok">OK</button></div>
+  </div>
+</div>
 
-                const updateIndicator = (el, state, number) => {
-                    const circle = el.querySelector('.indicator-circle');
-                    const text = el.querySelectorAll('h3, p');
-                    circle.classList.remove('bg-blue-500', 'bg-green-500', 'bg-gray-300', 'text-white', 'text-gray-500');
-                    text.forEach(t => t.classList.remove('text-gray-400'));
-                    el.classList.remove('active');
-                    if (state === 'completed') {
-                        circle.classList.add('bg-green-500', 'text-white');
-                        circle.innerHTML = `<i class="fas fa-check"></i>`;
-                    } else if (state === 'active') {
-                        el.classList.add('active');
-                        circle.classList.add('bg-blue-500', 'text-white');
-                        circle.innerHTML = number;
-                    } else { // locked
-                        circle.classList.add('bg-gray-300', 'text-gray-500');
-                        text.forEach(t => t.classList.add('text-gray-400'));
-                        circle.innerHTML = number;
-                    }
-                };
+<!-- Summary modal -->
+<div id="sum-overlay" class="overlay hidden">
+  <div class="modal">
+    <div class="mhd"><i class="fas fa-circle-check" style="color:var(--ok)"></i> Manual Generated</div>
+    <div class="mbd" id="sum-body"></div>
+    <div class="mft"><button class="btn btn-ghost" id="sum-ok">Done</button></div>
+  </div>
+</div>
 
-                document.getElementById('bom-section').classList.toggle('step-locked', !jobNumberEntered);
-                document.getElementById('submittals-section').classList.toggle('step-locked', !bomProcessed);
-                document.getElementById('review-section').classList.toggle('step-locked', !assignmentCompleted);
-                
-                if (!jobNumberEntered) {
-                    updateIndicator(stepIndicators[1], 'locked', '1');
-                    updateIndicator(stepIndicators[2], 'locked', '2');
-                    updateIndicator(stepIndicators[3], 'locked', '3');
-                } else if (!bomProcessed) {
-                     updateIndicator(stepIndicators[1], 'active', '1');
-                     updateIndicator(stepIndicators[2], 'locked', '2');
-                     updateIndicator(stepIndicators[3], 'locked', '3');
-                } else if (!assignmentCompleted) {
-                     updateIndicator(stepIndicators[1], 'completed', '1');
-                     updateIndicator(stepIndicators[2], 'active', '2');
-                     updateIndicator(stepIndicators[3], 'locked', '3');
-                } else { 
-                     updateIndicator(stepIndicators[1], 'completed', '1');
-                     updateIndicator(stepIndicators[2], 'completed', '2');
-                     updateIndicator(stepIndicators[3], 'active', '3');
-                }
-                
-                bomPreviewContainer.classList.toggle('hidden', !bomProcessed);
-                processBomBtn.disabled = !(bomUploaded && submittalsUploaded);
-                autoAssignBtn.disabled = !bomProcessed;
-                generateBtn.disabled = !assignmentCompleted || !hasContentToGenerate;
-            };
+<script>
+(function(){
+"use strict";
+const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
-            const renderBomTable = () => {
-                bomTableBody.innerHTML = appState.bomItems.map((item, index) => `
-                    <tr class="border-t hover:bg-gray-50">
-                        <td class="py-3 px-4 font-bold text-gray-500">${index + 1}</td>
-                        <td class="py-3 px-4">${item.description}</td>
-                        <td class="py-3 px-4 text-gray-600">${item.manufacturer}</td>
-                        <td class="py-3 px-4 text-gray-600">${item.partNumber}</td>
-                        <td class="py-3 px-4"><button class="text-red-500 hover:text-red-700 delete-bom-btn" data-index="${index}" title="Remove item"><i class="fas fa-trash-alt"></i></button></td>
-                    </tr>`).join('');
-                updateUI();
-            };
-            
-            const getManufacturerFromRules = (partNumber, description) => {
-                const descLower = (description || '').toLowerCase();
-                if (descLower.includes('level eye')) return 'H.A. Phillips';
-                if (descLower.includes('teikoku')) return 'Teikoku';
-                if (descLower.includes('cornell')) return 'Cornell'; // New rule
-                if (!partNumber) return null;
-                const pn = partNumber.toUpperCase();
+/* ============================== STATE ============================== */
+const state = {
+  jobNumber: "",
+  bomFile: null,
+  bomItems: [],          // {description, partNumber, manufacturer, mfgSource, excluded, excludeReason, eligible, assignedFile(name|null), assignSource}
+  datasheets: [],        // File[]
+  coverFile: null,       // File|null
+  pdfText: new Map(),    // filename -> lowercased extracted text (first 5 pages)
+  processed: false,
+  assigned: false,
+  ai: "untested",        // untested | ok | off
+};
+const LEGACY_COVER_NAME = "JWT Industrial Recirculator Package_ Installation, Operation, and Maintenance Manual (2025 Edition).pdf";
 
-                // Parker-R/S Rules
-                const parkerPrefixes = ['SGY', 'SGT', 'SAN', 'S4A', 'SRH', 'SR-', 'L-', 'M1-', 'XAN'];
-                const parkerModels = ['107015', '107016', '107017', '107020'];
-                if (parkerPrefixes.some(prefix => pn.startsWith(prefix)) || parkerModels.some(model => pn.includes(model)) || pn.startsWith('530-') || pn.includes('LLSS')) {
-                    return 'Parker-R/S';
-                }
+/* ============================== HELPERS ============================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const lc = s => String(s || "").toLowerCase();
+function showLoading(t){ $("loading-text").textContent = t; $("loading").classList.remove("hidden"); }
+function setLoading(t){ $("loading-text").textContent = t; }
+function hideLoading(){ $("loading").classList.add("hidden"); }
+function showMsg(body, title){ $("msg-title").textContent = title || "Notice"; $("msg-body").innerHTML = body; $("msg-overlay").classList.remove("hidden"); }
+$("msg-ok").addEventListener("click", () => $("msg-overlay").classList.add("hidden"));
+$("sum-ok").addEventListener("click", () => $("sum-overlay").classList.add("hidden"));
 
-                if (pn.includes('HLL')) return 'Hansen';
-                if (['GW','HCK','AS','VS','HA','HGV','GSB','H777','GS','MVS','H5600','MCV','AW','ASB'].some(p => pn.startsWith(p))) return 'Hansen';
-                if (['060G','027G','084','148B','148G','148X','018F','128F','027H'].some(p => pn.startsWith(p))) return 'Danfoss';
-                if (['800OP','800D','801','801DHC','802','811','812','804R','803','813','805R','CSS502A','850R','851R','CSS502B','CSS502C','804','814','805','815','850','851','901','903M','848M','849M','876M'].some(p => pn.includes(p)) || pn.startsWith('M-')) return 'Cyrus Shank';
-                if (['216-','119F','216F','217C','316C'].some(p => pn.startsWith(p))) return 'Teikoku';
-                if (pn.startsWith('H1100LC-RN')) return 'H.A. Phillips';
-                if (pn === 'V-C8954414') return 'Apollo';
-                return null;
-            };
-            
-            const fetchManufacturerWithAI = async (item) => {
-                const apiKey = "";
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                let prompt = `Analyze the component and PDF data to find the manufacturer. Component: - Description: "${item.description}" - Part Number: "${item.partNumber}".\nAvailable Datasheet Content Snippets:`;
-                appState.pdfTextCache.forEach((text, fileName) => {
-                     prompt += `\n\n---\nFile: ${fileName}\nContent: "${text.substring(0, 1000)}..."`;
-                });
-                prompt += `\n\n---\nBased on all data, what is the manufacturer? Respond with ONLY the name. If unknown, respond "Unknown".`;
-                const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { "temperature": 0.0 } };
-                try {
-                    const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                    if (!response.ok) return "Unknown";
-                    const result = await response.json();
-                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    return text ? text.trim().replace(/\.$/, '') : "Unknown";
-                } catch (error) { console.error("AI Manufacturer fetch error:", error); return "Unknown"; }
-            };
+function getFile(name){ return state.datasheets.find(f => f.name === name) || null; }
+function qualifiedItems(){ return state.bomItems.filter(i => !i.excluded && i.eligible); }
 
-            const handleBomFile = (file) => {
-                if (!file) return;
-                appState.bomFile = file;
-                const display = document.getElementById('bom-file-display');
-                document.getElementById('bom-drop-prompt').classList.add('hidden');
-                display.innerHTML = `<div class="flex items-center justify-center p-4 bg-green-50 text-sm"><p class="font-semibold text-green-800 truncate max-w-full px-2"><i class="fas fa-check-circle mr-2"></i>${file.name}</p></div>`;
-                display.classList.remove('hidden');
-                updateUI();
-            };
+/* Proper CSV parser (quotes, embedded commas/newlines) */
+function parseCSV(text){
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (q){
+      if (c === '"'){ if (text[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r"){
+      if (c === "\r" && text[i+1] === "\n") i++;
+      row.push(cur); rows.push(row); row = []; cur = "";
+    } else cur += c;
+  }
+  if (cur !== "" || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(c => String(c).trim() !== ""));
+}
 
-            const handleSubmittalFiles = (files) => {
-                const allNewFiles = Array.from(files).filter(file => file.type === 'application/pdf');
-                const coverManualName = "JWT Industrial Recirculator Package_ Installation, Operation, and Maintenance Manual (2025 Edition).pdf";
-                const coverFile = allNewFiles.find(f => f.name === coverManualName);
-                if (coverFile) {
-                    appState.coverManualFile = coverFile;
-                    showMessage("Cover Manual successfully uploaded.");
-                }
-                const regularFiles = allNewFiles.filter(f => f.name !== coverManualName);
-                appState.submittalFiles = [...new Set([...appState.submittalFiles, ...regularFiles])];
-                document.getElementById('submittals-drop-prompt').classList.add('hidden');
-                document.getElementById('submittals-file-display').classList.remove('hidden');
-                renderFileList();
-                updateUI();
-            };
-            
-            const renderFileList = () => {
-                const submittalsDisplay = document.getElementById('submittals-file-display');
-                if (appState.submittalFiles.length > 0 || appState.coverManualFile) {
-                    submittalsDisplay.innerHTML = `<div class="flex items-center justify-center p-4 bg-green-50 text-sm"><p class="font-semibold text-green-800"><i class="fas fa-check-circle mr-2"></i>${appState.submittalFiles.length} datasheets & ${appState.coverManualFile ? 1 : 0} cover loaded.</p></div>`;
-                }
-                let html = '';
-                if (appState.coverManualFile) {
-                    html += `<li class="flex items-center justify-between bg-green-100 p-2 rounded-md border-l-4 border-green-500"><span class="text-sm font-bold truncate"><i class="fas fa-crown text-yellow-500 mr-2"></i>${appState.coverManualFile.name} (Cover)</span><button class="text-gray-500 hover:text-red-600 remove-cover-btn"><i class="fas fa-times-circle"></i></button></li>`;
-                }
-                html += appState.submittalFiles.map((file, index) => `<li class="flex items-center justify-between bg-gray-100 p-2 rounded-md"><span class="text-sm font-medium truncate"><i class="fas fa-file-pdf text-red-500 mr-2"></i>${file.name}</span><button class="text-gray-500 hover:text-red-600 remove-file-btn" data-index="${index}"><i class="fas fa-times-circle"></i></button></li>`).join('');
-                fileList.innerHTML = html;
-            };
+/* Column auto-detection */
+const HEADER_KEYS = {
+  description: ["description","desc"],
+  partNumber: ["part number","part no","part #","p/n","model number","model no","catalog","cat no","model","part"],
+  manufacturer: ["manufacturer","mfg","mfr","brand","make","vendor"],
+};
+function detectColumns(rows){
+  for (let r = 0; r < Math.min(rows.length, 12); r++){
+    const cells = rows[r].map(c => lc(c).trim());
+    const map = {};
+    for (const [field, keys] of Object.entries(HEADER_KEYS)){
+      const idx = cells.findIndex(c => c && keys.some(k => c === k || c.includes(k)));
+      if (idx > -1) map[field] = idx;
+    }
+    if (map.description != null && map.partNumber != null && map.description !== map.partNumber)
+      return { headerRow: r, map };
+  }
+  return null;
+}
+const colLetter = i => { let s=""; i=Number(i); do { s = String.fromCharCode(65 + (i % 26)) + s; i = Math.floor(i/26) - 1; } while (i >= 0); return s; };
 
-            const extractTextFromPdf = async (file) => {
-                if (appState.pdfTextCache.has(file.name)) return;
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        try {
-                            const typedarray = new Uint8Array(event.target.result);
-                            const pdf = await pdfjsLib.getDocument(typedarray).promise;
-                            let fullText = '';
-                            for (let i = 1; i <= Math.min(pdf.numPages, 5); i++) {
-                                const page = await pdf.getPage(i);
-                                const textContent = await page.getTextContent();
-                                fullText += textContent.items.map(item => item.str).join(' ');
-                            }
-                            appState.pdfTextCache.set(file.name, fullText.toLowerCase());
-                        } catch(e) { console.error("Failed to parse PDF:", file.name); }
-                        resolve();
-                    };
-                    reader.readAsArrayBuffer(file);
-                });
-            };
+/* ============================== PDF.JS - REAL WORKER ============================== */
+/* Browsers refuse to start a Worker from a cross-origin script URL, which is why pointing
+   workerSrc at the CDN makes pdf.js silently fall back to its main-thread "fake worker".
+   Instead: download the worker source, host it as a same-origin Blob, boot a real Worker,
+   wait for pdf.js's own startup handshake to prove the thread is alive, then hand the live
+   port to pdf.js (workerPort overrides workerSrc and bypasses the fallback path entirely).
+   If a real worker cannot start, processing stops with a clear error - it never degrades. */
+const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+let pdfWorkerPromise = null;
 
-            const processBom = async () => {
-                loadingModal.classList.remove('hidden');
-                
-                loadingText.textContent = "Analyzing datasheets...";
-                await Promise.all(appState.submittalFiles.map(file => extractTextFromPdf(file)));
+function ensureRealPdfWorker(){
+  if (pdfWorkerPromise) return pdfWorkerPromise;
+  pdfWorkerPromise = (async () => {
+    if (typeof Worker === "undefined")
+      throw new Error("This browser does not support Web Workers, so PDFs cannot be parsed on a real worker thread.");
 
-                loadingText.textContent = 'Parsing BOM file...';
-                let rawBomItems = [];
-                try {
-                    const file = appState.bomFile;
-                    const event = await new Promise((resolve, reject) => {
-                        const reader = new FileReader(); reader.onload = resolve; reader.onerror = reject;
-                        if (file.name.toLowerCase().endsWith('xlsx') || file.name.toLowerCase().endsWith('pdf')) reader.readAsArrayBuffer(file); else reader.readAsText(file);
-                    });
-                    const parseRow = (row) => { const d=String(row[2]||'').trim(), p=String(row[3]||'').trim(); if(d||p) rawBomItems.push({description:d,partNumber:p,manufacturer:'',submittalFile:null,eligible:true}); };
-                    const fileType = file.name.toLowerCase().split('.').pop();
-                    if (fileType==='xlsx'){ const d=new Uint8Array(event.target.result), w=XLSX.read(d,{type:'array'}); XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1}).slice(1).forEach(parseRow); }
-                    else if(fileType==='csv'){ event.target.result.split('\n').slice(1).forEach(l=>{const p=(l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)||[]).map(i=>i.replace(/"/g,'').trim()); if(p.length>2)parseRow(p);});}
-                    else if(fileType==='pdf'){ const t=new Uint8Array(event.target.result),p=await pdfjsLib.getDocument(t).promise; for(let i=1;i<=p.numPages;i++){const a=await p.getPage(i),c=await a.getTextContent();c.items.map(item=>item.str).join('\n').split('\n').slice(1).forEach(l=>{const p=l.split(/\s{2,}/).map(i=>i.trim());if(p.length>2)parseRow(p);});}}
-                } catch (error) { showMessage('Error parsing BOM file.'); loadingModal.classList.add('hidden'); return; }
-                
-                const populatedRawItems = await Promise.all(rawBomItems.map(async (item, index) => {
-                    loadingText.textContent = `Identifying manufacturers (${index + 1}/${rawBomItems.length})...`;
-                    let manufacturer = getManufacturerFromRules(item.partNumber, item.description);
-                    if (!manufacturer || manufacturer.toLowerCase() === 'unknown') {
-                        manufacturer = await fetchManufacturerWithAI(item);
-                    }
-                    item.manufacturer = manufacturer;
-                    return item;
-                }));
+    const res = await fetch(PDFJS_WORKER_URL);
+    if (!res.ok) throw new Error(`Could not download the pdf.js worker (HTTP ${res.status}). Check your network connection.`);
+    const blobUrl = URL.createObjectURL(new Blob([await res.text()], { type: "text/javascript" }));
 
-                loadingText.textContent = 'Filtering BOM items...';
-                // --- Start of Perfected Filtering Logic ---
-                const gaugeValve = populatedRawItems.find(i=>i.description.toLowerCase().includes('gauge')&&i.description.toLowerCase().includes('angle valve'));
-                const purgeValve = populatedRawItems.find(i=>i.description.toLowerCase().includes('purge')&&i.description.toLowerCase().includes('angle valve'));
-                const partNumbersToExclude=new Set();
-                if(gaugeValve&&purgeValve&&gaugeValve.manufacturer.toLowerCase()===purgeValve.manufacturer.toLowerCase()){if(purgeValve.partNumber)partNumbersToExclude.add(purgeValve.partNumber);}
-                const exclusionKeywords=['vessel','oil pot','steel base','level column','orifice','description','actuator','ammonia gauge', 'supplied with pump'];
-                const seenComponentTypes = {};
-                const seenPartNumbers=new Set();
-                let finalBomItems=[];
-                for(const item of populatedRawItems){
-                    if(item.partNumber && partNumbersToExclude.has(item.partNumber)) continue;
-                    const d=item.description.toLowerCase();
-                    if(exclusionKeywords.some(k=>d.includes(k))) continue;
-                    if(d.includes('coil')&&!d.includes('valve')) continue;
-                    if(item.partNumber && seenPartNumbers.has(item.partNumber)) continue;
-                    const category = getComponentCategory(d);
-                    const manufacturer = item.manufacturer.toLowerCase();
-                    if (category) {
-                        if (!seenComponentTypes[manufacturer]) seenComponentTypes[manufacturer] = new Set();
-                        if (seenComponentTypes[manufacturer].has(category)) continue;
-                        seenComponentTypes[manufacturer].add(category);
-                    }
-                    if(item.partNumber) seenPartNumbers.add(item.partNumber);
-                    finalBomItems.push(item);
-                }
-                const eligibleKeywords=['valve','pump','sight glass','switch','sensor','probe','transducer','level eye','gauge','indicator','manifold','regulator','motor','filter','drier', 'control panel'];
-                finalBomItems.forEach(item=>{item.eligible=eligibleKeywords.some(k=>item.description.toLowerCase().includes(k))});
-                // --- End of Perfected Filtering Logic ---
-                
-                appState.bomItems = finalBomItems;
-                renderBomTable();
-                loadingModal.classList.add('hidden');
-                updateUI();
-            };
+    const worker = await new Promise((resolve, reject) => {
+      let w = null;
+      const fail = msg => { clearTimeout(timer); try { if (w) w.terminate(); } catch(_){} reject(new Error(msg)); };
+      const timer = setTimeout(() => fail("The PDF worker did not start within 10s - this environment likely blocks Web Workers (CSP). Download the file and open it in a normal browser tab or from a local web server."), 10000);
+      try { w = new Worker(blobUrl); }
+      catch(e){ fail("Web Worker creation was blocked here: " + e.message + ". Download the file and open it in a normal browser tab."); return; }
+      w.onerror = e => fail("The PDF worker failed to start: " + (e && e.message ? e.message : "script error"));
+      w.onmessage = () => { clearTimeout(timer); w.onmessage = null; w.onerror = null; resolve(w); };  // pdf.js worker posts "ready" on boot
+    });
 
-            const getComponentCategory = (descriptionLower) => {
-                if (descriptionLower.includes('hand expansion valve')) return 'hand-expansion-valve'; // Highest priority
-                if (descriptionLower.includes('shut-off valve')) return 'shut-off-valve'; // Simplified
-                if (descriptionLower.includes('pump')) return 'pump'; 
-                if (descriptionLower.includes('check valve')) return 'check-valve'; 
-                if (descriptionLower.includes('reseating regulator')) return 'reseating-regulator'; 
-                if (descriptionLower.includes('gauge valve')) return 'gauge-valve'; 
-                if (descriptionLower.includes('purge valve')) return 'purge-valve'; 
-                if (descriptionLower.includes('ball valve')) return 'ball-valve'; 
-                if (descriptionLower.includes('float switch')) return 'float-switch'; 
-                if (descriptionLower.includes('level eye')) return 'level-eye'; 
-                if (descriptionLower.includes('probe')) return 'probe'; 
-                if (descriptionLower.includes('relief valve')) return 'relief-valve'; 
-                if (descriptionLower.includes('three way manifold') || descriptionLower.includes('3-way manifold')) return 'manifold'; 
-                if (descriptionLower.includes('pressure transducer')) return 'pressure-transducer'; 
-                if (descriptionLower.includes('solenoid valve')) return 'solenoid-valve';
-                return null;
-            }
+    /* Errors-only verbosity on the worker. This silences the font sanitizer's
+       "TT: undefined function" warnings - those flag broken TrueType hinting bytecode inside
+       fonts embedded in uploaded PDFs; pdf.js repairs the font and text extraction is
+       unaffected, so only real errors are worth the console. */
+    worker.postMessage({ sourceName: "main", targetName: "worker", action: "configure", data: { verbosity: 0 } });
 
-            const autoAssignFiles = async () => {
-                loadingModal.classList.remove('hidden');
-                loadingText.textContent = "Applying specific rules...";
-                const usedFiles = new Set();
-                appState.bomItems.forEach(item => { item.submittalFile = null; });
-                const eligibleItems = appState.bomItems.filter(i => i.eligible);
+    pdfjsLib.GlobalWorkerOptions.workerPort = worker;  // every document now parses on this real thread
+    console.info("pdf.js: dedicated worker thread verified and active (no fake worker).");
+    return worker;
+  })().catch(err => { pdfWorkerPromise = null; throw err; });
+  return pdfWorkerPromise;
+}
 
-                const applySpecificRules = () => {
-                    eligibleItems.forEach(item => {
-                        if (item.submittalFile) return;
-                        const d = item.description.toLowerCase(), m = item.manufacturer.toLowerCase();
-                        let a = null;
-                        if (d.includes('pump')) {
-                            if (m === 'teikoku') { if (d.includes('alp') || d.includes('high differential')) a = appState.submittalFiles.find(f => f.name.includes('Teikoku - ALP PUMP')); else a = appState.submittalFiles.find(f => f.name === 'Teikoku - PUMP IOM.pdf');} 
-                            else if (m === 'cornell') a = appState.submittalFiles.find(f => f.name.includes('Cornell - HT Pumps'));
-                        } 
-                        else if (d.includes('control panel')) a = appState.submittalFiles.find(f => f.name.toLowerCase().includes('control panel'));
-                        else if (m === 'apollo' && d.includes('ball valve')) a = appState.submittalFiles.find(f => f.name.includes('Apollo - Valves 8954414A'));
-                        else if (m === 'hansen' && d.includes('float switch')) a = appState.submittalFiles.find(f => f.name.includes('Hansen - HLL Refrigerant Float Switch'));
-                        else if (m === 'danfoss' && d.includes('pressure transducer')) a = appState.submittalFiles.find(f => f.name.includes('Danfoss - Pressure transmitter Type AKS 32 and AKS 33'));
-                        else if (m === 'danfoss' && d.includes('solenoid valve')) { // Corrected General Danfoss Solenoid Rule
-                           const icsFile = appState.submittalFiles.find(f => f.name.includes('Danfoss - Solenoid Valve ICS'));
-                           if (icsFile) a = icsFile;
-                        }
-                        else if (m === 'parker-r/s') {
-                            const p = item.partNumber.toUpperCase();
-                            if (d.includes('relief valve')) { if (p.startsWith('SRH')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS -SRH Relief Valve')); else if (p.startsWith('SRLQ')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - SRLQ-EN')); else if (p.startsWith('SR')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - SR Relief Valve'));} 
-                            else if (d.includes('manifold')) { if (p.startsWith('M1-')) a = appState.submittalFiles.find(f => f.name.includes('Parker RS - M1 Manifolds'));} 
-                            else if (d.includes('float switch') && p.includes('LLSS')) { a = appState.submittalFiles.find(f => f.name.includes('Parker RS - LLSS Float Switch'));}
-                        }
-                        if (a && !usedFiles.has(a.name)) { item.submittalFile = a; usedFiles.add(a.name);}
-                    });
-                };
-                applySpecificRules();
+/* All pdf.js documents are opened through here: real worker guaranteed, errors-only logging. */
+async function openPdf(data){
+  await ensureRealPdfWorker();
+  return pdfjsLib.getDocument({ data, verbosity: 0 }).promise;
+}
 
-                const applySmartAssignment = async (unassignedItems, availableFiles) => {
-                    const apiKey = "", apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-                    for (const item of unassignedItems) {
-                        loadingText.textContent = `AI analysis for: ${item.description}...`;
-                        let prompt = `You are an expert matching industrial refrigeration components to datasheets. BOM Item: - Description: "${item.description}" - Part Number: "${item.partNumber}" - Manufacturer: "${item.manufacturer}". Analyze the content of the following PDFs and find the best match. Available PDF Files:`;
-                        availableFiles.forEach(file => { prompt += `\n\n---\nFilename: ${file.name}\nContent Snippet: "${(appState.pdfTextCache.get(file.name) || "").substring(0, 4000)}..."`; });
-                        prompt += `\n\n---\nWhich file is the correct datasheet? Respond with ONLY the exact filename. If no file is a confident match, respond with "None".`;
-                        const payload = { contents: [{ parts: [{ text: prompt }] }], generationConfig: { "temperature": 0.0 } };
-                        try {
-                            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                            if (!response.ok) continue;
-                            const result = await response.json();
-                            const matchedFilename = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-                            const matchedFile = availableFiles.find(f => f.name === matchedFilename);
-                            if (matchedFile) { item.submittalFile = matchedFile; usedFiles.add(matchedFile.name); availableFiles = availableFiles.filter(f => f.name !== matchedFile.name); }
-                        } catch (error) { console.error("AI assignment error:", error); }
-                    }
-                };
-                const unassignedItems = eligibleItems.filter(item => !item.submittalFile);
-                let availableFiles = appState.submittalFiles.filter(file => !usedFiles.has(file.name));
-                if (unassignedItems.length > 0 && availableFiles.length > 0) {
-                    await applySmartAssignment(unassignedItems, availableFiles);
-                }
-                
-                appState.assignmentCompleted = true;
-                loadingModal.classList.add('hidden');
-                showMessage("Auto-assignment complete. Please review the results in Step 3.");
-                renderReviewList();
-                updateUI();
-            };
+/* ============================== PDF TEXT EXTRACTION ============================== */
+async function extractTextFromPdf(file){
+  if (state.pdfText.has(file.name)) return;
+  await ensureRealPdfWorker();  // bootstrap problems must surface to the caller, never be swallowed per-file
+  let pdf = null;
+  try {
+    pdf = await openPdf(new Uint8Array(await file.arrayBuffer()));
+    let full = "";
+    const n = Math.min(pdf.numPages, 5);
+    for (let i = 1; i <= n; i++){
+      const page = await pdf.getPage(i);
+      const tc = await page.getTextContent();
+      full += " " + tc.items.map(it => it.str).join(" ");
+    }
+    state.pdfText.set(file.name, lc(full));
+  } catch(e){
+    console.warn("Text extraction failed:", file.name, e);
+    state.pdfText.set(file.name, "");
+  } finally {
+    if (pdf){ try { await pdf.destroy(); } catch(_){} }  // free this document's memory on the worker thread
+  }
+}
 
-            const renderReviewList = () => {
-                const fileOptions = appState.submittalFiles.map(file => `<option value="${file.name}">${file.name}</option>`).join('');
-                const eligibleItems = appState.bomItems.filter(i => i.eligible);
-                reviewList.innerHTML = eligibleItems.map((item) => {
-                    const originalIndex = appState.bomItems.indexOf(item);
-                    return `<div class="p-4 rounded-lg border bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-4 items-center"><div><p class="font-bold text-lg">${originalIndex + 1}. ${item.description}</p><p class="text-sm text-gray-500">${item.manufacturer || 'N/A'} - ${item.partNumber || 'N/A'}</p></div><div><select data-bom-item-index="${originalIndex}" class="review-select w-full p-2 border rounded-md bg-white focus:ring-2 focus:ring-blue-500"><option value="">-- Select a Datasheet --</option>${fileOptions}</select></div></div>`;
-                }).join('');
-                reviewList.querySelectorAll('.review-select').forEach(select => {
-                    const bomIndex = parseInt(select.dataset.bomItemIndex, 10);
-                    const bomItem = appState.bomItems[bomIndex];
-                    if (bomItem && bomItem.submittalFile) select.value = bomItem.submittalFile.name;
-                });
-            };
+/* Extract table-like rows from a PDF BOM using text positions (groups by line, splits on gaps) */
+async function rowsFromPdfBom(buf){
+  const pdf = await openPdf(new Uint8Array(buf));
+  const rows = [];
+  try {
+    for (let p = 1; p <= pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    const lines = new Map();
+    tc.items.forEach(it => {
+      if (!it.str || !it.str.trim()) return;
+      const y = Math.round(it.transform[5]);
+      // group within 2px vertically
+      let key = null;
+      for (const k of lines.keys()) if (Math.abs(k - y) <= 2){ key = k; break; }
+      if (key === null){ key = y; lines.set(key, []); }
+      lines.get(key).push({ x: it.transform[4], w: it.width || it.str.length * 5, str: it.str });
+    });
+    [...lines.keys()].sort((a,b) => b - a).forEach(y => {
+      const cells = lines.get(y).sort((a,b) => a.x - b.x);
+      const row = []; let cur = "", end = null;
+      cells.forEach(c => {
+        if (end !== null && c.x - end > 9){ row.push(cur.trim()); cur = c.str; }
+        else cur += (cur ? " " : "") + c.str;
+        end = c.x + c.w;
+      });
+      if (cur.trim()) row.push(cur.trim());
+      if (row.length) rows.push(row);
+    });
+    }
+    return rows;
+  } finally {
+    try { await pdf.destroy(); } catch(_){}
+  }
+}
 
-            const combinePdfs = async () => {
-                loadingModal.classList.remove('hidden'); loadingText.textContent = "Initializing PDF generation...";
-                const finalPdf = await PDFDocument.create();
-                if (appState.coverManualFile) { 
-                    try { 
-                        loadingText.textContent = `Processing Cover Manual...`; 
-                        const fb = await appState.coverManualFile.arrayBuffer(); 
-                        const sp = await PDFDocument.load(fb, { ignoreEncryption: true }); 
-                        const cp = await finalPdf.copyPages(sp, sp.getPageIndices()); 
-                        cp.forEach(p => finalPdf.addPage(p)); 
-                    } catch (e) { showMessage(`Could not process the Cover Manual. Skipping.`); } 
-                }
-                const itemsToCombine = appState.bomItems.filter(item => item.eligible && item.submittalFile);
-                if (itemsToCombine.length === 0 && !appState.coverManualFile) { 
-                    showMessage("No datasheets have been assigned or selected for inclusion."); 
-                    loadingModal.classList.add('hidden'); return; 
-                }
-                for (let i = 0; i < itemsToCombine.length; i++) { 
-                    const item = itemsToCombine[i]; 
-                    loadingText.textContent = `Processing (${i + 1}/${itemsToCombine.length}): ${item.description}`; 
-                    try { 
-                        const fb = await item.submittalFile.arrayBuffer(); 
-                        const sp = await PDFDocument.load(fb, { ignoreEncryption: true }); 
-                        const cp = await finalPdf.copyPages(sp, sp.getPageIndices()); 
-                        cp.forEach(p => finalPdf.addPage(p)); 
-                    } catch (e) { showMessage(`Could not process ${item.submittalFile.name}. Skipping.`); } 
-                }
-                loadingText.textContent = "Finalizing your manual..."; 
-                const pdfBytes = await finalPdf.save(); 
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' }); 
-                const a = document.createElement('a'); 
-                a.href = URL.createObjectURL(blob); 
-                const safeJobNumber = appState.jobNumber.replace(/[^a-z0-9\-_]/gi, '_') || 'Job'; 
-                a.download = `${safeJobNumber}-IOM.pdf`; 
-                document.body.appendChild(a); a.click(); a.remove(); 
-                URL.revokeObjectURL(a.href); 
-                loadingModal.classList.add('hidden');
-            };
+/* ============================== DOMAIN RULES (preserved) ============================== */
+function getManufacturerFromRules(partNumber, description){
+  const descLower = lc(description);
+  if (descLower.includes("level eye")) return "H.A. Phillips";
+  if (descLower.includes("teikoku")) return "Teikoku";
+  if (descLower.includes("cornell")) return "Cornell";
+  if (!partNumber) return null;
+  const pn = String(partNumber).toUpperCase();
 
-            // Event Listeners
-            resetBtn.addEventListener('click', () => location.reload());
-            jobNumberInput.addEventListener('input', (e) => { appState.jobNumber = e.target.value.trim(); updateUI(); });
-            messageOkBtn.addEventListener('click', hideMessage);
-            document.getElementById('bom-browse-files-btn').addEventListener('click', () => bomFileInput.click());
-            bomFileInput.addEventListener('change', (e) => handleBomFile(e.target.files[0]));
-            ['dragover', 'dragleave', 'drop'].forEach(ev => bomDropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); bomDropZone.classList.remove('dragover'); }));
-            bomDropZone.addEventListener('dragover', () => bomDropZone.classList.add('dragover'));
-            bomDropZone.addEventListener('drop', e => { if (e.dataTransfer.files?.[0]) handleBomFile(e.dataTransfer.files[0]); });
-            
-            submittalsBrowseBtn.addEventListener('click', () => submittalsFileInput.click());
-            submittalsFileInput.addEventListener('change', (e) => handleSubmittalFiles(e.target.files));
-            ['dragover', 'dragleave', 'drop'].forEach(ev => submittalsDropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); submittalsDropZone.classList.remove('dragover'); }));
-            submittalsDropZone.addEventListener('dragover', () => submittalsDropZone.classList.add('dragover'));
-            submittalsDropZone.addEventListener('drop', e => { if (e.dataTransfer.files) handleSubmittalFiles(e.dataTransfer.files); });
-            
-            fileList.addEventListener('click', (e) => {
-                const removeBtn = e.target.closest('.remove-file-btn'); const removeCoverBtn = e.target.closest('.remove-cover-btn');
-                if (removeBtn) { const i = parseInt(removeBtn.dataset.index, 10), f = appState.submittalFiles[i]; appState.submittalFiles.splice(i, 1); appState.pdfTextCache.delete(f.name); renderFileList(); updateUI(); }
-                if(removeCoverBtn) { appState.coverManualFile = null; renderFileList(); updateUI(); }
-            });
-            
-            processBomBtn.addEventListener('click', processBom);
-            autoAssignBtn.addEventListener('click', autoAssignFiles);
-            generateBtn.addEventListener('click', combinePdfs);
-            
-            reviewList.addEventListener('change', (e) => {
-                if (e.target.classList.contains('review-select')) {
-                    const i = parseInt(e.target.dataset.bomItemIndex, 10), f = e.target.value;
-                    appState.bomItems[i].submittalFile = appState.submittalFiles.find(file => file.name === f) || null;
-                    updateUI();
-                }
-            });
-            bomTableBody.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-bom-btn')) {
-                    appState.bomItems.splice(parseInt(e.target.closest('.delete-bom-btn').dataset.index, 10), 1);
-                    renderBomTable();
-                    renderReviewList();
-                }
-            });
-            updateUI();
+  const parkerPrefixes = ["SGY","SGT","SAN","S4A","SRH","SR-","L-","M1-","XAN"];
+  const parkerModels = ["107015","107016","107017","107020"];
+  if (parkerPrefixes.some(p => pn.startsWith(p)) || parkerModels.some(m => pn.includes(m)) || pn.startsWith("530-") || pn.includes("LLSS"))
+    return "Parker-R/S";
+
+  if (pn.includes("HLL")) return "Hansen";
+  if (["GW","HCK","AS","VS","HA","HGV","GSB","H777","GS","MVS","H5600","MCV","AW","ASB"].some(p => pn.startsWith(p))) return "Hansen";
+  if (["060G","027G","084","148B","148G","148X","018F","128F","027H"].some(p => pn.startsWith(p))) return "Danfoss";
+  if (["800OP","800D","801","801DHC","802","811","812","804R","803","813","805R","CSS502A","850R","851R","CSS502B","CSS502C","804","814","805","815","850","851","901","903M","848M","849M","876M"].some(p => pn.includes(p)) || pn.startsWith("M-")) return "Cyrus Shank";
+  if (["216-","119F","216F","217C","316C"].some(p => pn.startsWith(p))) return "Teikoku";
+  if (pn.startsWith("H1100LC-RN")) return "H.A. Phillips";
+  if (pn === "V-C8954414") return "Apollo";
+  return null;
+}
+
+function getComponentCategory(d){
+  if (d.includes("hand expansion valve")) return "hand-expansion-valve";
+  if (d.includes("shut-off valve") || d.includes("shut off valve") || d.includes("shutoff valve")) return "shut-off-valve";
+  if (d.includes("pump")) return "pump";
+  if (d.includes("check valve")) return "check-valve";
+  if (d.includes("reseating regulator")) return "reseating-regulator";
+  if (d.includes("gauge valve")) return "gauge-valve";
+  if (d.includes("purge valve")) return "purge-valve";
+  if (d.includes("ball valve")) return "ball-valve";
+  if (d.includes("float switch")) return "float-switch";
+  if (d.includes("level eye")) return "level-eye";
+  if (d.includes("probe")) return "probe";
+  if (d.includes("relief valve")) return "relief-valve";
+  if (d.includes("three way manifold") || d.includes("3-way manifold") || d.includes("three-way manifold")) return "manifold";
+  if (d.includes("pressure transducer") || d.includes("pressure transmitter")) return "pressure-transducer";
+  if (d.includes("solenoid valve")) return "solenoid-valve";
+  return null;
+}
+
+const EXCLUSION_KEYWORDS = ["vessel","oil pot","steel base","level column","orifice","description","actuator","ammonia gauge","supplied with pump"];
+const ELIGIBLE_KEYWORDS = ["valve","pump","sight glass","switch","sensor","probe","transducer","transmitter","level eye","gauge","indicator","manifold","regulator","motor","filter","drier","strainer","control panel"];
+
+/* ============================== AI (Claude, in-app) ============================== */
+async function askClaude(prompt){
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+  });
+  if (!res.ok) throw new Error("API " + res.status);
+  const data = await res.json();
+  return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+}
+function parseJsonArray(text){
+  const t = String(text || "").replace(/```json|```/g, "").trim();
+  const a = t.indexOf("["), b = t.lastIndexOf("]");
+  if (a === -1 || b === -1) throw new Error("No JSON array in response");
+  return JSON.parse(t.slice(a, b + 1));
+}
+function aiFailed(e){
+  console.warn("AI unavailable:", e);
+  state.ai = "off"; renderAiChip();
+}
+function renderAiChip(){
+  const chip = $("ai-chip"), txt = $("ai-chip-text");
+  chip.classList.remove("ok","off");
+  if (state.ai === "ok"){ chip.classList.add("ok"); txt.textContent = "AI assist: active"; }
+  else if (state.ai === "off"){ chip.classList.add("off"); txt.textContent = "AI assist: unavailable — rules & text matching only"; }
+  else txt.textContent = "AI assist: ready";
+}
+
+/* One batched call to identify unknown manufacturers */
+async function aiIdentifyManufacturers(items){
+  if (!items.length || state.ai === "off") return;
+  const vocab = [...new Set(state.datasheets.map(f => f.name.split(" - ")[0].trim()).filter(v => v && v.length < 30))];
+  let prompt = "You identify the manufacturer of industrial refrigeration components.\n";
+  if (vocab.length) prompt += "Manufacturers known to be in this project's library: " + vocab.join(", ") + ".\n";
+  prompt += "Components (JSON):\n" + JSON.stringify(items.map((it, i) => ({ i, description: it.description, partNumber: it.partNumber }))) +
+    '\n\nRespond with ONLY a JSON array, no prose, no markdown: [{"i":0,"manufacturer":"Name"}] — one entry per component. Use "Unknown" if not confident.';
+  try {
+    const out = parseJsonArray(await askClaude(prompt));
+    state.ai = "ok"; renderAiChip();
+    out.forEach(o => {
+      const it = items[o.i];
+      if (it && o.manufacturer && lc(o.manufacturer) !== "unknown"){ it.manufacturer = String(o.manufacturer).trim(); it.mfgSource = "ai"; }
+    });
+  } catch(e){ aiFailed(e); }
+}
+
+/* One batched call to assign remaining datasheets (1:1) */
+async function aiAssignFiles(items, files, usedFiles){
+  if (!items.length || !files.length || state.ai === "off") return;
+  let prompt = "You match industrial refrigeration BOM components to their PDF datasheets.\n\nComponents (JSON):\n" +
+    JSON.stringify(items.map((it, i) => ({ i, description: it.description, partNumber: it.partNumber, manufacturer: it.manufacturer })));
+  prompt += "\n\nAvailable PDF files:";
+  files.slice(0, 40).forEach(f => {
+    const snip = (state.pdfText.get(f.name) || "").slice(0, 650);
+    prompt += "\n---\nFilename: " + f.name + "\nContent: " + snip;
+  });
+  prompt += '\n\nEach file may be used for at most one component. Respond with ONLY a JSON array, no prose, no markdown: [{"i":0,"file":"exact filename or null"}] — one entry per component. Use null when no file is a confident match.';
+  try {
+    const out = parseJsonArray(await askClaude(prompt));
+    state.ai = "ok"; renderAiChip();
+    out.forEach(o => {
+      const it = items[o.i];
+      if (!it || !o.file) return;
+      const f = files.find(x => lc(x.name) === lc(String(o.file).trim()));
+      if (f && !usedFiles.has(f.name)){ it.assignedFile = f.name; it.assignSource = "ai"; usedFiles.add(f.name); }
+    });
+  } catch(e){ aiFailed(e); }
+}
+
+/* ============================== UI: status & rendering ============================== */
+function updateUI(){
+  $("tb-job").textContent = state.jobNumber || "—";
+  const jobOk = state.jobNumber.length > 0;
+  const uploadsOk = state.bomFile && (state.datasheets.length > 0 || state.coverFile);
+
+  $("card-1").classList.toggle("locked", !jobOk);
+  $("card-2").classList.toggle("locked", !state.processed);
+  $("card-3").classList.toggle("locked", !state.assigned);
+
+  const setStep = (el, mode) => {
+    el.classList.remove("active","done");
+    const m = el.querySelector(".marker");
+    if (mode === "done"){ el.classList.add("done"); m.innerHTML = '<i class="fas fa-check"></i>'; }
+    else { m.textContent = el.id.slice(-1); if (mode === "active") el.classList.add("active"); }
+  };
+  if (!jobOk){ setStep($("step-1"),""); setStep($("step-2"),""); setStep($("step-3"),""); }
+  else if (!state.processed){ setStep($("step-1"),"active"); setStep($("step-2"),""); setStep($("step-3"),""); }
+  else if (!state.assigned){ setStep($("step-1"),"done"); setStep($("step-2"),"active"); setStep($("step-3"),""); }
+  else { setStep($("step-1"),"done"); setStep($("step-2"),"done"); setStep($("step-3"),"active"); }
+
+  $("process-btn").disabled = !(jobOk && uploadsOk);
+  $("assign-btn").disabled = !state.processed;
+  $("bom-results").classList.toggle("hidden", !state.processed);
+
+  const q = qualifiedItems();
+  const withFile = q.filter(i => i.assignedFile && getFile(i.assignedFile));
+  const canGen = state.assigned && (withFile.length > 0 || state.coverFile);
+  $("generate-btn").disabled = !canGen;
+  $("gen-status").textContent = state.assigned
+    ? `${withFile.length}/${q.length} items have datasheets${state.coverFile ? " · cover manual loaded" : " · no cover manual"}`
+    : "";
+}
+
+function renderBomTable(){
+  const q = qualifiedItems();
+  $("qual-count").textContent = q.length;
+  $("bom-tbody").innerHTML = q.map(item => {
+    const idx = state.bomItems.indexOf(item);
+    return `<tr>
+      <td class="idx">${String(q.indexOf(item)+1).padStart(2,"0")}</td>
+      <td>${esc(item.description)}</td>
+      <td>${esc(item.manufacturer || "—")}${item.mfgSource === "ai" ? ' <span class="badge ai" title="Identified by AI">AI</span>' : ""}</td>
+      <td class="mono">${esc(item.partNumber || "—")}</td>
+      <td><button class="icon-btn del-item" data-i="${idx}" title="Exclude this item"><i class="fas fa-trash-can"></i></button></td>
+    </tr>`;
+  }).join("") || '<tr><td colspan="5" style="color:var(--ink-3);padding:16px">No qualified items found — check the excluded list below.</td></tr>';
+
+  const ex = state.bomItems.filter(i => i.excluded);
+  $("excluded-summary").textContent = `Excluded items (${ex.length}) — click to inspect & restore`;
+  $("excluded-list").innerHTML = ex.map(item => {
+    const idx = state.bomItems.indexOf(item);
+    return `<div class="x-row">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.description)} <span class="mono" style="color:var(--ink-3)">${esc(item.partNumber || "")}</span></span>
+      <span class="why">${esc(item.excludeReason)}</span>
+      <button class="restore-item" data-i="${idx}">Restore</button>
+    </div>`;
+  }).join("") || '<div class="x-row" style="color:var(--ink-3)">Nothing was excluded.</div>';
+  updateUI();
+}
+
+function renderFileList(){
+  let html = "";
+  if (state.coverFile){
+    html += `<li class="cover"><i class="fas fa-crown crown on" title="This file is the cover manual"></i>
+      <span class="name">${esc(state.coverFile.name)}</span>
+      <span class="badge rule">Cover</span>
+      <button class="icon-btn uncover-btn" title="Unset cover"><i class="fas fa-xmark"></i></button></li>`;
+  }
+  html += state.datasheets.map((f, i) =>
+    `<li><button class="icon-btn set-cover" data-i="${i}" title="Use as cover manual"><i class="fas fa-crown crown"></i></button>
+      <i class="fas fa-file-pdf" style="color:#c0564a"></i>
+      <span class="name">${esc(f.name)}</span>
+      <button class="icon-btn rm-file" data-i="${i}" title="Remove"><i class="fas fa-circle-xmark"></i></button></li>`
+  ).join("");
+  $("file-list").innerHTML = html || '<li style="color:var(--ink-3)">No datasheets loaded yet.</li>';
+
+  const dsLoaded = $("ds-loaded"), dsPrompt = $("ds-prompt");
+  if (state.datasheets.length || state.coverFile){
+    dsPrompt.classList.add("hidden"); dsLoaded.classList.remove("hidden");
+    dsLoaded.innerHTML = `<span class="ok-chip"><i class="fas fa-circle-check"></i><span>${state.datasheets.length} datasheet${state.datasheets.length === 1 ? "" : "s"}${state.coverFile ? " + cover manual" : ""} loaded</span></span>
+      <p class="t2" style="margin-top:8px">Drop more files to add · manage the list in Step 2</p>`;
+  } else { dsPrompt.classList.remove("hidden"); dsLoaded.classList.add("hidden"); }
+  renderLibrary();  // keep the online-library "loaded" markers in sync
+}
+
+const SOURCE_BADGE = { rule: '<span class="badge rule">Rule</span>', match: '<span class="badge match">Matched</span>', ai: '<span class="badge ai">AI</span>', manual: '<span class="badge manual">Manual</span>' };
+function renderReview(){
+  const q = qualifiedItems();
+  const options = state.datasheets.map(f => `<option value="${esc(f.name)}">${esc(f.name)}</option>`).join("");
+  $("review-list").innerHTML = q.map(item => {
+    const idx = state.bomItems.indexOf(item);
+    const has = item.assignedFile && getFile(item.assignedFile);
+    return `<div class="rev ${has ? "has" : "missing"}">
+      <div>
+        <div class="ttl">${String(q.indexOf(item)+1).padStart(2,"0")} · ${esc(item.description)} ${has ? (SOURCE_BADGE[item.assignSource] || "") : '<span class="badge none">No datasheet</span>'}</div>
+        <div class="meta">${esc(item.manufacturer || "N/A")} · <span class="mono">${esc(item.partNumber || "N/A")}</span></div>
+      </div>
+      <div><select class="rev-select" data-i="${idx}"><option value="">— No datasheet / exclude from manual —</option>${options}</select></div>
+    </div>`;
+  }).join("") || '<p style="color:var(--ink-3)">No qualified items to review.</p>';
+  q.forEach(item => {
+    const sel = $("review-list").querySelector(`.rev-select[data-i="${state.bomItems.indexOf(item)}"]`);
+    if (sel && item.assignedFile && getFile(item.assignedFile)) sel.value = item.assignedFile;
+  });
+  renderUnusedNote();
+}
+function renderUnusedNote(){
+  const used = new Set(qualifiedItems().map(i => i.assignedFile).filter(Boolean));
+  const unused = state.datasheets.filter(f => !used.has(f.name));
+  const el = $("unused-note");
+  if (state.assigned && unused.length){
+    el.classList.remove("hidden");
+    el.innerHTML = `<b>${unused.length} datasheet${unused.length === 1 ? " was" : "s were"} not assigned to anything:</b> ${unused.map(f => esc(f.name)).join(" · ")}`;
+  } else el.classList.add("hidden");
+}
+
+/* ============================== FILE HANDLING ============================== */
+function handleBomFile(file){
+  if (!file) return;
+  const ok = /\.(csv|xlsx|pdf)$/i.test(file.name);
+  if (!ok){ showMsg("BOM must be a .csv, .xlsx, or .pdf file."); return; }
+  state.bomFile = file;
+  $("bom-prompt").classList.add("hidden");
+  const el = $("bom-loaded");
+  el.classList.remove("hidden");
+  el.innerHTML = `<span class="ok-chip"><i class="fas fa-circle-check"></i><span>${esc(file.name)}</span></span><p class="t2" style="margin-top:8px">Drop another file to replace</p>`;
+  updateUI();
+}
+
+function handleDatasheetFiles(fileList){
+  const pdfs = Array.from(fileList).filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
+  if (!pdfs.length){ showMsg("Only PDF files are accepted as datasheets."); return; }
+  let coverSet = false;
+  for (const f of pdfs){
+    if (f.name === LEGACY_COVER_NAME){ state.coverFile = f; coverSet = true; continue; }
+    const i = state.datasheets.findIndex(d => d.name === f.name);
+    if (i > -1){ state.datasheets[i] = f; state.pdfText.delete(f.name); }   // replace duplicates by name
+    else state.datasheets.push(f);
+  }
+  if (coverSet) showMsg("Cover manual detected and loaded automatically.");
+  renderFileList(); updateUI();
+}
+
+function clearAssignmentsFor(name){
+  state.bomItems.forEach(it => { if (it.assignedFile === name){ it.assignedFile = null; it.assignSource = null; } });
+}
+
+/* ============================== STEP 1: PROCESS BOM ============================== */
+async function processBom(){
+  showLoading("Starting PDF engine…");
+  try {
+    /* Hard requirement: a verified real worker thread, or a clear error. Never a fake-worker fallback. */
+    if (state.datasheets.length || state.bomFile.name.toLowerCase().endsWith(".pdf"))
+      await ensureRealPdfWorker();
+
+    for (let i = 0; i < state.datasheets.length; i++){
+      setLoading(`Reading datasheets… (${i+1}/${state.datasheets.length})`);
+      await extractTextFromPdf(state.datasheets[i]);
+    }
+
+    setLoading("Parsing BOM file…");
+    let rows = [];
+    const ext = state.bomFile.name.toLowerCase().split(".").pop();
+    if (ext === "xlsx"){
+      const buf = await state.bomFile.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: "" });
+    } else if (ext === "csv"){
+      rows = parseCSV(await state.bomFile.text());
+    } else if (ext === "pdf"){
+      rows = await rowsFromPdfBom(await state.bomFile.arrayBuffer());
+    }
+    if (!rows.length) throw new Error("No rows found in the BOM file.");
+
+    /* Column mapping */
+    const det = detectColumns(rows);
+    let cols, startRow, noteHtml;
+    if (det){
+      cols = { description: det.map.description, partNumber: det.map.partNumber, manufacturer: det.map.manufacturer };
+      startRow = det.headerRow + 1;
+      noteHtml = `<i class="fas fa-table-columns"></i> Detected columns — Description: <b>${colLetter(cols.description)}</b>, Part #: <b>${colLetter(cols.partNumber)}</b>` +
+        (cols.manufacturer != null ? `, Manufacturer: <b>${colLetter(cols.manufacturer)}</b>` : "") + ` (header on row ${det.headerRow + 1}).`;
+    } else {
+      cols = { description: 2, partNumber: 3, manufacturer: null };
+      startRow = 1;
+      noteHtml = `<i class="fas fa-triangle-exclamation"></i> No header row detected — using the default layout (column C = Description, column D = Part #). Verify the table below.`;
+    }
+    $("col-note").innerHTML = noteHtml; $("col-note").classList.remove("hidden");
+
+    /* Build raw items */
+    const raw = [];
+    for (let r = startRow; r < rows.length; r++){
+      const row = rows[r];
+      const d = String(row[cols.description] ?? "").trim();
+      const p = String(row[cols.partNumber] ?? "").trim();
+      const m = cols.manufacturer != null ? String(row[cols.manufacturer] ?? "").trim() : "";
+      if (!d && !p) continue;
+      raw.push({ description: d, partNumber: p, manufacturer: m, mfgSource: m ? "bom" : null,
+                 excluded: false, excludeReason: "", eligible: true, assignedFile: null, assignSource: null });
+    }
+    if (!raw.length) throw new Error("No BOM line items could be read. Check the file layout.");
+
+    /* Manufacturers: BOM column → shop rules → AI batch */
+    setLoading("Identifying manufacturers…");
+    raw.forEach(it => {
+      if (!it.manufacturer){
+        const m = getManufacturerFromRules(it.partNumber, it.description);
+        if (m){ it.manufacturer = m; it.mfgSource = "rule"; }
+      }
+    });
+    const unknown = raw.filter(it => !it.manufacturer || lc(it.manufacturer) === "unknown");
+    if (unknown.length){
+      setLoading(`Asking AI to identify ${unknown.length} manufacturer${unknown.length === 1 ? "" : "s"}…`);
+      await aiIdentifyManufacturers(unknown);
+      unknown.forEach(it => { if (!it.manufacturer) it.manufacturer = "Unknown"; });
+    }
+
+    /* ---- Filtering (original shop logic, now transparent & reversible) ---- */
+    setLoading("Filtering BOM items…");
+    const gaugeValve = raw.find(i => lc(i.description).includes("gauge") && lc(i.description).includes("angle valve"));
+    const purgeValve = raw.find(i => lc(i.description).includes("purge") && lc(i.description).includes("angle valve"));
+    const pairedPurgePN = new Set();
+    if (gaugeValve && purgeValve && lc(gaugeValve.manufacturer) === lc(purgeValve.manufacturer) && purgeValve.partNumber)
+      pairedPurgePN.add(purgeValve.partNumber);
+
+    const seenTypes = {}, seenPN = new Set();
+    for (const item of raw){
+      const d = lc(item.description);
+      if (item.partNumber && pairedPurgePN.has(item.partNumber)){ item.excluded = true; item.excludeReason = "Purge valve paired with gauge valve"; continue; }
+      const kw = EXCLUSION_KEYWORDS.find(k => d.includes(k));
+      if (kw){ item.excluded = true; item.excludeReason = `Excluded keyword: ${kw}`; continue; }
+      if (d.includes("coil") && !d.includes("valve")){ item.excluded = true; item.excludeReason = "Coil (non-valve)"; continue; }
+      if (item.partNumber && seenPN.has(item.partNumber)){ item.excluded = true; item.excludeReason = "Duplicate part number"; continue; }
+      const cat = getComponentCategory(d), m = lc(item.manufacturer);
+      if (cat){
+        seenTypes[m] = seenTypes[m] || new Set();
+        if (seenTypes[m].has(cat)){ item.excluded = true; item.excludeReason = `Duplicate type: ${item.manufacturer} ${cat.replace(/-/g," ")}`; continue; }
+        seenTypes[m].add(cat);
+      }
+      if (item.partNumber) seenPN.add(item.partNumber);
+      if (!ELIGIBLE_KEYWORDS.some(k => d.includes(k))){ item.excluded = true; item.excludeReason = "Not a serviceable component"; item.eligible = false; }
+    }
+
+    state.bomItems = raw;
+    state.processed = true;
+    state.assigned = false;
+    renderBomTable();
+    hideLoading();
+    document.getElementById("card-2").classList.add("reveal");
+  } catch(err){
+    hideLoading();
+    console.error(err);
+    showMsg(`Could not process the BOM: ${esc(err.message || err)}`, "Processing Error");
+  }
+}
+
+/* ============================== STEP 2: ASSIGNMENT ============================== */
+function findFileByName(test){ return state.datasheets.find(f => test(lc(f.name))) || null; }
+
+function applySpecificRules(items, used){
+  items.forEach(item => {
+    if (item.assignedFile) return;
+    const d = lc(item.description), m = lc(item.manufacturer), pn = (item.partNumber || "").toUpperCase();
+    let f = null;
+    if (d.includes("pump")){
+      if (m === "teikoku"){
+        if (d.includes("alp") || d.includes("high differential")) f = findFileByName(n => n.includes("teikoku") && n.includes("alp"));
+        else f = findFileByName(n => n.includes("teikoku - pump iom")) || findFileByName(n => n.includes("teikoku") && n.includes("pump iom"));
+      } else if (m === "cornell") f = findFileByName(n => n.includes("cornell") && n.includes("ht pump"));
+    }
+    else if (d.includes("control panel")) f = findFileByName(n => n.includes("control panel"));
+    else if (m === "apollo" && d.includes("ball valve")) f = findFileByName(n => n.includes("apollo") && n.includes("8954414"));
+    else if (m === "hansen" && d.includes("float switch")) f = findFileByName(n => n.includes("hansen") && n.includes("hll"));
+    else if (m === "danfoss" && (d.includes("pressure transducer") || d.includes("pressure transmitter")))
+      f = findFileByName(n => n.includes("aks 32") || n.includes("aks 33") || (n.includes("danfoss") && n.includes("pressure transmitter")));
+    else if (m === "danfoss" && d.includes("solenoid valve"))
+      f = findFileByName(n => n.includes("solenoid valve ics")) || findFileByName(n => n.includes("danfoss") && n.includes("solenoid"));
+    else if (m === "parker-r/s"){
+      if (d.includes("relief valve")){
+        if (pn.startsWith("SRH")) f = findFileByName(n => n.includes("srh") && n.includes("relief"));
+        else if (pn.startsWith("SRLQ")) f = findFileByName(n => n.includes("srlq"));
+        else if (pn.startsWith("SR")) f = findFileByName(n => n.includes("sr relief"));
+      }
+      else if (d.includes("manifold") && pn.startsWith("M1-")) f = findFileByName(n => n.includes("m1") && n.includes("manifold"));
+      else if (d.includes("float switch") && pn.includes("LLSS")) f = findFileByName(n => n.includes("llss"));
+    }
+    if (f && !used.has(f.name)){ item.assignedFile = f.name; item.assignSource = "rule"; used.add(f.name); }
+  });
+}
+
+/* Deterministic scoring: part numbers + manufacturer + description tokens vs filename + extracted text */
+const STOP = new Set(["with","and","for","the","inch","type","style","series"]);
+function tokenize(s){ return lc(s).replace(/[^a-z0-9]+/g, " ").split(" ").filter(t => t.length > 2 && !STOP.has(t)); }
+function scorePair(item, file){
+  const name = lc(file.name), text = state.pdfText.get(file.name) || "";
+  const nameAN = name.replace(/[^a-z0-9]/g, ""), textAN = text.replace(/[^a-z0-9]/g, "");
+  let s = 0;
+  const pn = lc(item.partNumber).replace(/[^a-z0-9]/g, "");
+  if (pn.length >= 4){
+    if (nameAN.includes(pn)) s += 60;
+    else if (textAN.includes(pn)) s += 45;
+    else { const pre = pn.slice(0, 6); if (pre.length >= 4 && (nameAN.includes(pre) || textAN.includes(pre))) s += 18; }
+  }
+  const m = lc(item.manufacturer);
+  if (m && m !== "unknown"){
+    const mTok = m.split(/[^a-z0-9]+/).filter(Boolean)[0];
+    if (mTok && name.includes(mTok)) s += 25;
+    else if (mTok && text.includes(mTok)) s += 10;
+  }
+  tokenize(item.description).forEach(t => { if (name.includes(t)) s += 6; else if (text.includes(t)) s += 2; });
+  const cat = getComponentCategory(lc(item.description));
+  if (cat && cat.split("-").every(w => name.includes(w))) s += 12;
+  return s;
+}
+function applyScoredMatching(items, used, threshold){
+  const pairs = [];
+  const avail = state.datasheets.filter(f => !used.has(f.name));
+  items.forEach(item => { if (item.assignedFile) return;
+    avail.forEach(f => { const s = scorePair(item, f); if (s >= threshold) pairs.push({ item, f, s }); });
+  });
+  pairs.sort((a, b) => b.s - a.s);
+  pairs.forEach(p => {
+    if (!p.item.assignedFile && !used.has(p.f.name)){ p.item.assignedFile = p.f.name; p.item.assignSource = "match"; used.add(p.f.name); }
+  });
+}
+
+async function autoAssign(){
+  showLoading("Applying shop rules…");
+  try {
+    const items = qualifiedItems();
+    items.forEach(it => { it.assignedFile = null; it.assignSource = null; });
+    const used = new Set();
+
+    applySpecificRules(items, used);
+
+    setLoading("Matching part numbers & descriptions against PDFs…");
+    applyScoredMatching(items, used, 40);
+
+    const remaining = items.filter(it => !it.assignedFile);
+    const avail = state.datasheets.filter(f => !used.has(f.name));
+    if (remaining.length && avail.length){
+      setLoading(`AI matching ${remaining.length} remaining item${remaining.length === 1 ? "" : "s"}…`);
+      await aiAssignFiles(remaining, avail, used);
+    }
+
+    state.assigned = true;
+    renderReview(); updateUI();
+    hideLoading();
+    const done = items.filter(i => i.assignedFile).length;
+    showMsg(`Assigned datasheets to <b>${done} of ${items.length}</b> qualified items.<br>` +
+      `Sources — <span class="badge rule">Rule</span> exact shop rules, <span class="badge match">Matched</span> part-number/text match, <span class="badge ai">AI</span> Claude fallback.` +
+      `<br><br>Review everything in Step 3 and override with the dropdowns where needed.`, "Auto-Assignment Complete");
+    document.getElementById("card-3").classList.add("reveal");
+  } catch(err){
+    hideLoading(); console.error(err);
+    showMsg(`Auto-assignment hit a problem: ${esc(err.message || err)}`, "Assignment Error");
+  }
+}
+
+/* ============================== STEP 3: GENERATE PDF ============================== */
+const PAGE_W = 612, PAGE_H = 792;            // US Letter
+const NAVY = rgb(0.075, 0.204, 0.31), ORANGE = rgb(0.894, 0.392, 0.11),
+      INK = rgb(0.086, 0.13, 0.17), GRAY = rgb(0.45, 0.48, 0.5), LIGHT = rgb(0.84, 0.82, 0.78);
+const winAnsi = s => String(s ?? "").replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"').replace(/[\u2013\u2014]/g,"-").replace(/[^\x20-\xFF]/g,"?");
+function wrapText(t, max){
+  const words = winAnsi(t).split(/\s+/); const lines = []; let cur = "";
+  words.forEach(w => { if ((cur + " " + w).trim().length > max){ if (cur) lines.push(cur); cur = w; } else cur = (cur + " " + w).trim(); });
+  if (cur) lines.push(cur);
+  return lines;
+}
+const trunc = (t, n) => { t = winAnsi(t); return t.length > n ? t.slice(0, n - 1) + "…".replace("…","...") : t; };
+
+async function generateManual(){
+  const opts = {
+    title: $("opt-title").checked, toc: $("opt-toc").checked,
+    div: $("opt-div").checked, pn: $("opt-pn").checked,
+  };
+  showLoading("Loading source PDFs…");
+  try {
+    /* Gather & load sources */
+    const q = qualifiedItems();
+    const sections = [];           // {item, file, src, pages, start}
+    const skipped = [];
+    let coverEntry = null;
+    if (state.coverFile){
+      try {
+        const src = await PDFDocument.load(await state.coverFile.arrayBuffer(), { ignoreEncryption: true });
+        coverEntry = { src, pages: src.getPageCount(), start: 0 };
+      } catch(e){ skipped.push(state.coverFile.name); }
+    }
+    for (let i = 0; i < q.length; i++){
+      const item = q[i];
+      const file = item.assignedFile ? getFile(item.assignedFile) : null;
+      if (!file) continue;
+      setLoading(`Loading source PDFs… (${sections.length + 1})`);
+      try {
+        const src = await PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
+        sections.push({ item, file, src, pages: src.getPageCount(), start: 0 });
+      } catch(e){ skipped.push(file.name); console.warn("Load failed:", file.name, e); }
+    }
+    if (!sections.length && !coverEntry) throw new Error("Nothing to combine — no readable datasheets are assigned and no cover manual is loaded.");
+
+    /* Pagination plan */
+    const ROWS_PER_TOC = 14;
+    const entries = (coverEntry ? 1 : 0) + sections.length;
+    const tocPages = opts.toc ? Math.max(1, Math.ceil(entries / ROWS_PER_TOC)) : 0;
+    let cursor = (opts.title ? 1 : 0) + tocPages;
+    if (coverEntry){ coverEntry.start = cursor + 1; cursor += coverEntry.pages; }
+    sections.forEach(sec => { sec.start = cursor + 1; cursor += (opts.div ? 1 : 0) + sec.pages; });
+    const totalPages = cursor;
+
+    /* Assemble */
+    setLoading("Assembling manual…");
+    const out = await PDFDocument.create();
+    const helv = await out.embedFont(StandardFonts.Helvetica);
+    const helvB = await out.embedFont(StandardFonts.HelveticaBold);
+    const mono = await out.embedFont(StandardFonts.Courier);
+    const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+    const job = winAnsi(state.jobNumber || "JOB");
+
+    if (opts.title){
+      const p = out.addPage([PAGE_W, PAGE_H]);
+      p.drawRectangle({ x: 0, y: PAGE_H - 130, width: PAGE_W, height: 130, color: NAVY });
+      p.drawRectangle({ x: 0, y: PAGE_H - 138, width: PAGE_W, height: 8, color: ORANGE });
+      p.drawText("INSTALLATION  ·  OPERATION  ·  MAINTENANCE", { x: 54, y: PAGE_H - 78, size: 13, font: helvB, color: rgb(1,1,1) });
+      p.drawText("EQUIPMENT MANUAL PACKAGE", { x: 54, y: PAGE_H - 102, size: 11, font: helv, color: rgb(0.8, 0.86, 0.92) });
+      p.drawText("JOB NUMBER", { x: 54, y: 540, size: 11, font: helvB, color: GRAY });
+      const jSize = job.length > 14 ? 30 : 42;
+      p.drawText(job, { x: 54, y: 540 - jSize - 8, size: jSize, font: mono, color: INK });
+      p.drawLine({ start: { x: 54, y: 470 }, end: { x: PAGE_W - 54, y: 470 }, thickness: 1.2, color: ORANGE });
+      const facts = [["DATE GENERATED", today], ["COMPONENT SECTIONS", String(sections.length)], ["COVER MANUAL", coverEntry ? "Included" : "Not included"], ["TOTAL PAGES", String(totalPages)]];
+      let fy = 430;
+      facts.forEach(([k, v]) => {
+        p.drawText(k, { x: 54, y: fy, size: 9, font: helvB, color: GRAY });
+        p.drawText(winAnsi(v), { x: 230, y: fy, size: 11, font: helv, color: INK });
+        p.drawLine({ start: { x: 54, y: fy - 8 }, end: { x: PAGE_W - 54, y: fy - 8 }, thickness: 0.5, color: LIGHT });
+        fy -= 32;
+      });
+      p.drawText("Generated by IOM Manual Builder", { x: 54, y: 46, size: 8, font: helv, color: GRAY });
+    }
+
+    if (opts.toc){
+      const rows = [];
+      if (coverEntry) rows.push({ label: "Cover Manual - Installation, Operation & Maintenance", sub: "", page: coverEntry.start });
+      sections.forEach((sec, i) => rows.push({
+        label: `${String(i + 1).padStart(2, "0")}  ${trunc(sec.item.description, 58)}`,
+        sub: `${sec.item.manufacturer || ""}${sec.item.partNumber ? "  ·  " + sec.item.partNumber : ""}`,
+        page: sec.start
+      }));
+      for (let pg = 0; pg < tocPages; pg++){
+        const p = out.addPage([PAGE_W, PAGE_H]);
+        p.drawText("TABLE OF CONTENTS", { x: 54, y: PAGE_H - 80, size: 20, font: helvB, color: INK });
+        p.drawText(`JOB ${job}`, { x: 54, y: PAGE_H - 100, size: 10, font: mono, color: GRAY });
+        p.drawLine({ start: { x: 54, y: PAGE_H - 112 }, end: { x: PAGE_W - 54, y: PAGE_H - 112 }, thickness: 1.5, color: ORANGE });
+        let y = PAGE_H - 150;
+        rows.slice(pg * ROWS_PER_TOC, (pg + 1) * ROWS_PER_TOC).forEach(r => {
+          p.drawText(winAnsi(r.label), { x: 54, y, size: 11, font: helvB, color: INK });
+          const pgTxt = `p. ${r.page}`;
+          p.drawText(pgTxt, { x: PAGE_W - 54 - helvB.widthOfTextAtSize(pgTxt, 11), y, size: 11, font: helvB, color: NAVY });
+          if (r.sub) p.drawText(trunc(r.sub, 80), { x: 70, y: y - 13, size: 8.5, font: helv, color: GRAY });
+          p.drawLine({ start: { x: 54, y: y - 21 }, end: { x: PAGE_W - 54, y: y - 21 }, thickness: 0.5, color: LIGHT });
+          y -= 42;
         });
-    </script>
+      }
+    }
+
+    if (coverEntry){
+      setLoading("Adding cover manual…");
+      (await out.copyPages(coverEntry.src, coverEntry.src.getPageIndices())).forEach(pg => out.addPage(pg));
+    }
+
+    for (let i = 0; i < sections.length; i++){
+      const sec = sections[i];
+      setLoading(`Adding section ${i + 1}/${sections.length}: ${sec.item.description}`);
+      if (opts.div){
+        const p = out.addPage([PAGE_W, PAGE_H]);
+        p.drawRectangle({ x: 0, y: 0, width: 120, height: PAGE_H, color: NAVY });
+        p.drawRectangle({ x: 120, y: 0, width: 6, height: PAGE_H, color: ORANGE });
+        const num = String(i + 1).padStart(2, "0");
+        p.drawText(num, { x: 60 - helvB.widthOfTextAtSize(num, 44) / 2, y: PAGE_H - 110, size: 44, font: helvB, color: rgb(1,1,1) });
+        p.drawText("SECTION", { x: 160, y: PAGE_H - 90, size: 11, font: helvB, color: GRAY });
+        let ty = PAGE_H - 122;
+        wrapText(sec.item.description, 34).slice(0, 3).forEach(line => {
+          p.drawText(line, { x: 160, y: ty, size: 22, font: helvB, color: INK }); ty -= 28;
+        });
+        ty -= 8;
+        p.drawLine({ start: { x: 160, y: ty + 10 }, end: { x: PAGE_W - 54, y: ty + 10 }, thickness: 1, color: ORANGE });
+        p.drawText("MANUFACTURER", { x: 160, y: ty - 14, size: 8.5, font: helvB, color: GRAY });
+        p.drawText(winAnsi(sec.item.manufacturer || "N/A"), { x: 160, y: ty - 28, size: 12, font: helv, color: INK });
+        p.drawText("PART NUMBER", { x: 360, y: ty - 14, size: 8.5, font: helvB, color: GRAY });
+        p.drawText(winAnsi(sec.item.partNumber || "N/A"), { x: 360, y: ty - 28, size: 12, font: mono, color: INK });
+        p.drawText(`JOB ${job}`, { x: 160, y: 46, size: 8, font: mono, color: GRAY });
+      }
+      (await out.copyPages(sec.src, sec.src.getPageIndices())).forEach(pg => out.addPage(pg));
+    }
+
+    if (opts.pn){
+      setLoading("Stamping page numbers…");
+      const pages = out.getPages(), n = pages.length;
+      pages.forEach((p, i) => {
+        try {
+          const t = `${i + 1} / ${n}`;
+          p.drawText(t, { x: p.getWidth() - 24 - helv.widthOfTextAtSize(t, 8), y: 16, size: 8, font: helv, color: GRAY });
+        } catch(e){ /* skip odd pages */ }
+      });
+    }
+
+    setLoading("Saving file…");
+    const bytes = await out.save();
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const safeJob = (state.jobNumber || "Job").replace(/[^a-z0-9\-_]/gi, "_");
+    a.download = `${safeJob}-IOM.pdf`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    hideLoading();
+
+    /* Summary */
+    const missing = q.filter(i => !i.assignedFile || !getFile(i.assignedFile));
+    const used = new Set(q.map(i => i.assignedFile).filter(Boolean));
+    const unused = state.datasheets.filter(f => !used.has(f.name));
+    let html = `<div class="kv"><span>File</span><b>${esc(safeJob)}-IOM.pdf</b></div>
+      <div class="kv"><span>Total pages</span><b>${totalPages}</b></div>
+      <div class="kv"><span>Component sections</span><b>${sections.length}</b></div>
+      <div class="kv"><span>Cover manual</span><b>${coverEntry ? "Included" : "—"}</b></div>`;
+    if (skipped.length) html += `<p style="margin-top:12px;color:var(--bad)"><b><i class="fas fa-triangle-exclamation"></i> Skipped (unreadable PDFs):</b></p><ul>${skipped.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+    if (missing.length) html += `<p style="margin-top:12px;color:var(--amber)"><b>Items without a datasheet (left out):</b></p><ul>${missing.map(i => `<li>${esc(i.description)}</li>`).join("")}</ul>`;
+    if (unused.length) html += `<p style="margin-top:12px;color:var(--ink-2)"><b>Unused datasheets:</b> ${unused.map(f => esc(f.name)).join(" · ")}</p>`;
+    $("sum-body").innerHTML = html;
+    $("sum-overlay").classList.remove("hidden");
+  } catch(err){
+    hideLoading(); console.error(err);
+    showMsg(`Generation failed: ${esc(err.message || err)}`, "Generation Error");
+  }
+}
+
+/* ============================== RESET ============================== */
+/* ============================== ONLINE DATASHEET LIBRARY (GitHub) ============================== */
+/* Host the datasheet PDFs in a folder of the same GitHub repository that serves this page.
+   The app lists that folder live through the GitHub API, so newly uploaded PDFs show up here
+   automatically, and pulls files on demand (cached locally so they only download once).
+   owner/repo are auto-detected when the app runs on GitHub Pages (https://OWNER.github.io/REPO/).
+   Fill them in below only if you use a custom domain or open this file straight from disk. */
+const DATASHEET_LIBRARY = {
+  owner:  "",            // e.g. "yourusername"   — leave "" to auto-detect on GitHub Pages
+  repo:   "",            // e.g. "iom-builder"    — leave "" to auto-detect on GitHub Pages
+  branch: "main",
+  folder: "datasheets"   // repo folder that holds the PDFs
+};
+
+function detectLibrary(loc){
+  const lib = { ...DATASHEET_LIBRARY };
+  const host = loc.hostname || "", path = loc.pathname || "";
+  if ((!lib.owner || !lib.repo) && host.endsWith(".github.io")){
+    if (!lib.owner) lib.owner = host.split(".")[0];
+    if (!lib.repo){
+      const seg = path.split("/").filter(Boolean);
+      lib.repo = (seg[0] && !/\.[a-z0-9]+$/i.test(seg[0])) ? seg[0] : host;  // project site vs user site
+    }
+  }
+  return (lib.owner && lib.repo) ? lib : null;
+}
+
+/* Same-origin copy when the app is served from this repo's own GitHub Pages site (no CORS, CDN-cached). */
+function libraryFileUrl(lib, loc, name){
+  if (loc.hostname === `${lib.owner}.github.io`){
+    const base = lib.repo === loc.hostname ? "/" : `/${lib.repo}/`;
+    return `${base}${lib.folder}/${encodeURIComponent(name)}`;
+  }
+  return null;
+}
+
+let libConfig = null, libIndex = [], libStatus = "Checking library…";
+
+async function fetchLibraryIndex(lib){
+  const url = `https://api.github.com/repos/${lib.owner}/${lib.repo}/contents/${lib.folder}?ref=${encodeURIComponent(lib.branch)}`;
+  const res = await fetch(url, { headers: { "Accept": "application/vnd.github+json" } });
+  if (res.status === 404) throw new Error(`No "${lib.folder}" folder found in ${lib.owner}/${lib.repo} (note: the repo must be public).`);
+  if (res.status === 403) throw new Error("GitHub API rate limit reached — wait a few minutes and refresh.");
+  if (!res.ok) throw new Error(`GitHub API error (HTTP ${res.status}).`);
+  const items = await res.json();
+  return (Array.isArray(items) ? items : [])
+    .filter(f => f.type === "file" && /\.pdf$/i.test(f.name))
+    .map(f => ({ name: f.name, size: f.size || 0, sha: f.sha, url: f.download_url }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/* Local cache (IndexedDB) keyed by filename + git sha, so 165 MB of PDFs downloads once,
+   re-downloads only when a file changes in the repo, and everything degrades gracefully
+   to plain network fetches wherever IndexedDB isn't available. */
+let libDbPromise = null;
+function libDb(){
+  if (libDbPromise) return libDbPromise;
+  libDbPromise = new Promise(res => {
+    try {
+      if (typeof indexedDB === "undefined") return res(null);
+      const rq = indexedDB.open("iom-datasheet-cache", 1);
+      rq.onupgradeneeded = () => rq.result.createObjectStore("files");
+      rq.onsuccess = () => res(rq.result);
+      rq.onerror = () => res(null);
+      rq.onblocked = () => res(null);
+    } catch(_){ res(null); }
+  });
+  return libDbPromise;
+}
+async function libCacheGet(name, sha){
+  const db = await libDb(); if (!db) return null;
+  return new Promise(res => { try {
+    const rq = db.transaction("files").objectStore("files").get(name);
+    rq.onsuccess = () => res(rq.result && rq.result.sha === sha ? rq.result.blob : null);
+    rq.onerror = () => res(null);
+  } catch(_){ res(null); } });
+}
+async function libCachePut(name, sha, blob){
+  const db = await libDb(); if (!db) return;
+  try { db.transaction("files", "readwrite").objectStore("files").put({ sha, blob }, name); } catch(_){}
+}
+
+async function fetchLibraryFile(entry){
+  const cached = await libCacheGet(entry.name, entry.sha);
+  if (cached) return new File([cached], entry.name, { type: "application/pdf" });
+  const res = await fetch(libraryFileUrl(libConfig, location, entry.name) || entry.url);
+  if (!res.ok) throw new Error(`download failed (HTTP ${res.status})`);
+  const blob = await res.blob();
+  libCachePut(entry.name, entry.sha, blob);
+  return new File([blob], entry.name, { type: "application/pdf" });
+}
+
+const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
+function isLoadedName(n){ return state.datasheets.some(f => f.name === n) || (!!state.coverFile && state.coverFile.name === n); }
+
+function renderLibrary(){
+  const panel = $("lib-panel");
+  if (!libConfig){ panel.classList.add("hidden"); return; }
+  panel.classList.remove("hidden");
+  $("lib-src").textContent = `${libConfig.owner}/${libConfig.repo}/${libConfig.folder}`;
+  const btn = $("lib-load-all");
+  if (!libIndex.length){
+    $("lib-list").innerHTML = `<li class="lib-empty">${esc(libStatus)}</li>`;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-download"></i> Load all`;
+    return;
+  }
+  $("lib-list").innerHTML = libIndex.map((f, i) => `
+    <li><i class="fas fa-file-pdf" style="color:#c0564a"></i>
+      <span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="size">${fmtSize(f.size)}</span>
+      ${isLoadedName(f.name)
+        ? `<span class="loaded-chip"><i class="fas fa-circle-check"></i> loaded</span>`
+        : `<button class="lib-add" data-i="${i}">+ Add</button>`}
+    </li>`).join("");
+  const left = libIndex.filter(f => !isLoadedName(f.name));
+  btn.disabled = !left.length;
+  btn.innerHTML = left.length
+    ? `<i class="fas fa-download"></i> Load all (${fmtSize(left.reduce((s, f) => s + (f.size || 0), 0))})`
+    : `<i class="fas fa-circle-check"></i> All loaded`;
+}
+
+async function initLibrary(){
+  libConfig = detectLibrary(location);
+  if (!libConfig){ renderLibrary(); return; }
+  libStatus = "Loading file list…"; libIndex = []; renderLibrary();
+  try {
+    libIndex = await fetchLibraryIndex(libConfig);
+    libStatus = "No PDF files in the library folder yet — upload some to the repo and hit refresh.";
+  } catch(e){
+    libIndex = []; libStatus = e.message || String(e);
+  }
+  renderLibrary();
+}
+
+async function addFromLibrary(indices){
+  const list = indices.map(i => libIndex[i]).filter(f => f && !isLoadedName(f.name));
+  if (!list.length) return;
+  const failed = [];
+  showLoading("Downloading datasheets…");
+  for (let k = 0; k < list.length; k++){
+    const f = list[k];
+    setLoading(`Downloading ${k + 1}/${list.length} — ${f.name} (${fmtSize(f.size)})`);
+    try { handleDatasheetFiles([await fetchLibraryFile(f)]); }
+    catch(e){ failed.push(`${f.name} — ${e.message}`); }
+  }
+  hideLoading();
+  renderLibrary();
+  if (failed.length) showMsg(`Could not download:<br>${failed.map(esc).join("<br>")}`, "Online Library");
+}
+
+function resetAll(){
+  state.jobNumber = ""; state.bomFile = null; state.bomItems = [];
+  state.datasheets = []; state.coverFile = null; state.pdfText.clear();
+  state.processed = false; state.assigned = false;
+  $("job-number-input").value = "";
+  $("bom-input").value = ""; $("ds-input").value = "";
+  $("bom-prompt").classList.remove("hidden"); $("bom-loaded").classList.add("hidden");
+  $("ds-prompt").classList.remove("hidden"); $("ds-loaded").classList.add("hidden");
+  $("bom-results").classList.add("hidden"); $("col-note").classList.add("hidden");
+  $("review-list").innerHTML = ""; $("unused-note").classList.add("hidden");
+  renderFileList(); updateUI();
+}
+
+/* ============================== EVENTS ============================== */
+$("reset-btn").addEventListener("click", resetAll);
+$("lib-refresh").addEventListener("click", initLibrary);
+$("lib-load-all").addEventListener("click", () => addFromLibrary(libIndex.map((_, i) => i)));
+$("lib-list").addEventListener("click", e => {
+  const b = e.target.closest(".lib-add");
+  if (b) addFromLibrary([+b.dataset.i]);
+});
+$("job-number-input").addEventListener("input", e => { state.jobNumber = e.target.value.trim(); updateUI(); });
+
+function wireDropZone(zone, input, browseBtn, handler, multiple){
+  browseBtn.addEventListener("click", e => { e.stopPropagation(); input.click(); });
+  zone.addEventListener("click", e => { if (e.target === zone || e.target.closest(".t1,.t2,.big,.ok-chip")) input.click(); });
+  input.addEventListener("change", e => { handler(multiple ? e.target.files : e.target.files[0]); input.value = ""; });
+  ["dragover","dragleave","drop"].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }));
+  zone.addEventListener("dragover", () => zone.classList.add("dragover"));
+  zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+  zone.addEventListener("drop", e => { zone.classList.remove("dragover"); if (e.dataTransfer.files.length) handler(multiple ? e.dataTransfer.files : e.dataTransfer.files[0]); });
+}
+wireDropZone($("bom-dz"), $("bom-input"), $("bom-browse"), handleBomFile, false);
+wireDropZone($("ds-dz"), $("ds-input"), $("ds-browse"), handleDatasheetFiles, true);
+
+$("process-btn").addEventListener("click", processBom);
+$("assign-btn").addEventListener("click", autoAssign);
+$("generate-btn").addEventListener("click", generateManual);
+
+$("bom-tbody").addEventListener("click", e => {
+  const btn = e.target.closest(".del-item");
+  if (!btn) return;
+  const item = state.bomItems[+btn.dataset.i];
+  item.excluded = true; item.excludeReason = "Removed by user";
+  item.assignedFile = null; item.assignSource = null;
+  renderBomTable(); if (state.assigned) renderReview();
+});
+$("excluded-list").addEventListener("click", e => {
+  const btn = e.target.closest(".restore-item");
+  if (!btn) return;
+  const item = state.bomItems[+btn.dataset.i];
+  item.excluded = false; item.excludeReason = ""; item.eligible = true;
+  renderBomTable(); if (state.assigned) renderReview();
+});
+$("file-list").addEventListener("click", e => {
+  const rm = e.target.closest(".rm-file"), setC = e.target.closest(".set-cover"), unC = e.target.closest(".uncover-btn");
+  if (rm){
+    const f = state.datasheets[+rm.dataset.i];
+    state.datasheets.splice(+rm.dataset.i, 1);
+    state.pdfText.delete(f.name); clearAssignmentsFor(f.name);
+  } else if (setC){
+    const f = state.datasheets[+setC.dataset.i];
+    if (state.coverFile) state.datasheets.push(state.coverFile);          // demote old cover back to library
+    state.datasheets = state.datasheets.filter(x => x !== f);
+    clearAssignmentsFor(f.name);
+    state.coverFile = f;
+  } else if (unC){
+    if (state.coverFile){ state.datasheets.push(state.coverFile); state.coverFile = null; }
+  } else return;
+  renderFileList(); if (state.assigned) renderReview(); updateUI();
+});
+$("review-list").addEventListener("change", e => {
+  if (!e.target.classList.contains("rev-select")) return;
+  const item = state.bomItems[+e.target.dataset.i];
+  item.assignedFile = e.target.value || null;
+  item.assignSource = item.assignedFile ? "manual" : null;
+  renderReview(); updateUI();
+});
+
+/* ============================== INIT ============================== */
+$("tb-date").textContent = new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+renderFileList(); renderAiChip(); initLibrary(); updateUI();
+})();
+</script>
 </body>
 </html>
-
-
