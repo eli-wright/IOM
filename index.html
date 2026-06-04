@@ -106,6 +106,10 @@ input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(12,90,
 .dz .t2{font-size:12px;color:var(--ink-3);margin:4px 0}
 .dz .ok-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(28,122,75,.1);border:1px solid var(--ok);color:var(--ok);padding:8px 12px;font-size:13px;font-weight:600;max-width:100%}
 .dz .ok-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ds-status{min-height:54px;display:flex;align-items:center;padding:14px;border:1.5px solid var(--ink);background:rgba(255,255,255,.55)}
+.ds-status .ok-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(28,122,75,.1);border:1px solid var(--ok);color:var(--ok);padding:8px 12px;font-size:13px;font-weight:600;max-width:100%}
+.ds-status .ds-status-msg{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px}
+.ds-status .ds-status-msg.err{color:var(--bad)}
 .section-label{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .section-label .tag{font-family:var(--body);font-size:11px;letter-spacing:.05em;background:var(--ink);color:#fff;padding:1px 7px}
 .note{font-size:12.5px;color:var(--ink-2);background:rgba(12,90,166,.06);border-left:3px solid var(--blue);padding:8px 12px;margin-top:12px}
@@ -142,8 +146,6 @@ ul.files li.cover .name{font-weight:600}
 .lib-head .src{font-family:var(--mono);font-weight:400;font-size:11px;color:var(--ink-3);text-transform:none;letter-spacing:0}
 .lib ul.files{border:none;max-height:210px;margin:0}
 .lib .size{font-family:var(--mono);font-size:11px;color:var(--ink-3);white-space:nowrap}
-.lib .lib-add{border:1px solid var(--blue);color:var(--blue);background:none;font-size:12px;padding:2px 9px;cursor:pointer;white-space:nowrap}
-.lib .lib-add:hover{background:rgba(12,90,166,.08)}
 .lib .loaded-chip{color:var(--ok);font-size:12px;white-space:nowrap}
 .lib-empty{padding:10px;color:var(--ink-3);font-size:13px;list-style:none}
 /* ---------- Badges / review ---------- */
@@ -216,7 +218,7 @@ select:focus{outline:none;border-color:var(--blue)}
     <aside class="rail">
       <div class="step" id="step-1">
         <div class="col"><div class="marker">1</div><div class="bar"></div></div>
-        <div><h3>Bill of Materials</h3><p class="desc">Upload BOM &amp; datasheets, then process.</p></div>
+        <div><h3>Bill of Materials</h3><p class="desc">Upload BOM, then process.</p></div>
       </div>
       <div class="step" id="step-2">
         <div class="col"><div class="marker">2</div><div class="bar"></div></div>
@@ -232,7 +234,7 @@ select:focus{outline:none;border-color:var(--blue)}
 
       <!-- STEP 1 -->
       <section class="card locked" id="card-1">
-        <div class="hd"><h2><span class="num">01</span>Upload &amp; Process BOM</h2><span class="hint">CSV, XLSX, or PDF bill of materials + all datasheet PDFs.</span></div>
+        <div class="hd"><h2><span class="num">01</span>Upload &amp; Process BOM</h2><span class="hint">Upload your bill of materials — datasheets load automatically from GitHub.</span></div>
         <div class="bd">
           <div class="grid2">
             <div>
@@ -249,23 +251,13 @@ select:focus{outline:none;border-color:var(--blue)}
               </div>
             </div>
             <div>
-              <p class="section-label"><span class="tag">B</span> Datasheets &amp; Cover Manual <span style="font-weight:400;font-size:12px;color:var(--ink-3)">(PDF)</span></p>
-              <div class="dz" id="ds-dz">
-                <div id="ds-prompt">
-                  <i class="fas fa-file-pdf big" style="color:#c0564a"></i>
-                  <p class="t1">Drag &amp; drop PDFs</p>
-                  <p class="t2">multiple files allowed — or</p>
-                  <button class="btn btn-ghost" id="ds-browse">Browse…</button>
-                </div>
-                <div id="ds-loaded" class="hidden"></div>
-                <input type="file" id="ds-input" class="hidden" multiple accept=".pdf,application/pdf">
-              </div>
+              <p class="section-label"><span class="tag">B</span> Datasheets <span style="font-weight:400;font-size:12px;color:var(--ink-3)">(loaded automatically from GitHub)</span></p>
+              <div id="ds-loaded" class="ds-status"></div>
               <div id="lib-panel" class="lib hidden">
                 <div class="lib-head">
-                  <span><i class="fas fa-cloud-arrow-down"></i>&nbsp;Online Library <span class="src" id="lib-src"></span></span>
+                  <span><i class="fas fa-cloud-arrow-down"></i>&nbsp;GitHub Datasheet Library <span class="src" id="lib-src"></span></span>
                   <span style="display:flex;align-items:center;gap:6px">
-                    <button class="icon-btn" id="lib-refresh" title="Refresh file list"><i class="fas fa-rotate"></i></button>
-                    <button class="btn btn-ghost" id="lib-load-all" disabled><i class="fas fa-download"></i> Load all</button>
+                    <button class="icon-btn" id="lib-refresh" title="Re-check GitHub for new datasheets"><i class="fas fa-rotate"></i></button>
                   </span>
                 </div>
                 <ul class="files" id="lib-list"></ul>
@@ -654,7 +646,7 @@ async function aiAssignFiles(items, files, usedFiles){
 function updateUI(){
   $("tb-job").textContent = state.jobNumber || "—";
   const jobOk = state.jobNumber.length > 0;
-  const uploadsOk = state.bomFile && (state.datasheets.length > 0 || state.coverFile);
+  const uploadsOk = !!state.bomFile;   // datasheets are fetched automatically from the GitHub library
 
   $("card-1").classList.toggle("locked", !jobOk);
   $("card-2").classList.toggle("locked", !state.processed);
@@ -727,12 +719,13 @@ function renderFileList(){
   ).join("");
   $("file-list").innerHTML = html || '<li style="color:var(--ink-3)">No datasheets loaded yet.</li>';
 
-  const dsLoaded = $("ds-loaded"), dsPrompt = $("ds-prompt");
+  const dsLoaded = $("ds-loaded");
   if (state.datasheets.length || state.coverFile){
-    dsPrompt.classList.add("hidden"); dsLoaded.classList.remove("hidden");
-    dsLoaded.innerHTML = `<span class="ok-chip"><i class="fas fa-circle-check"></i><span>${state.datasheets.length} datasheet${state.datasheets.length === 1 ? "" : "s"}${state.coverFile ? " + cover manual" : ""} loaded</span></span>
-      <p class="t2" style="margin-top:8px">Drop more files to add · manage the list in Step 2</p>`;
-  } else { dsPrompt.classList.remove("hidden"); dsLoaded.classList.add("hidden"); }
+    dsLoaded.innerHTML = `<span class="ok-chip"><i class="fas fa-circle-check"></i><span>${state.datasheets.length} datasheet${state.datasheets.length === 1 ? "" : "s"}${state.coverFile ? " + cover manual" : ""} loaded from GitHub</span></span>`;
+  } else {
+    const isErr = libConfig && libIndex.length === 0 && !/loading|checking|download/i.test(libStatus);
+    dsLoaded.innerHTML = `<span class="ds-status-msg${isErr ? " err" : ""}"><i class="fas fa-cloud-arrow-down"></i> ${esc(libStatus)}</span>`;
+  }
   renderLibrary();  // keep the online-library "loaded" markers in sync
 }
 
@@ -780,9 +773,9 @@ function handleBomFile(file){
   updateUI();
 }
 
-function handleDatasheetFiles(fileList){
+function handleDatasheetFiles(fileList, quiet){
   const pdfs = Array.from(fileList).filter(f => f.type === "application/pdf" || /\.pdf$/i.test(f.name));
-  if (!pdfs.length){ showMsg("Only PDF files are accepted as datasheets."); return; }
+  if (!pdfs.length){ if (!quiet) showMsg("Only PDF files are accepted as datasheets."); return; }
   let coverSet = false;
   for (const f of pdfs){
     if (f.name === LEGACY_COVER_NAME){ state.coverFile = f; coverSet = true; continue; }
@@ -790,7 +783,7 @@ function handleDatasheetFiles(fileList){
     if (i > -1){ state.datasheets[i] = f; state.pdfText.delete(f.name); }   // replace duplicates by name
     else state.datasheets.push(f);
   }
-  if (coverSet) showMsg("Cover manual detected and loaded automatically.");
+  if (coverSet && !quiet) showMsg("Cover manual detected and loaded automatically.");
   renderFileList(); updateUI();
 }
 
@@ -800,8 +793,14 @@ function clearAssignmentsFor(name){
 
 /* ============================== STEP 1: PROCESS BOM ============================== */
 async function processBom(){
-  showLoading("Starting PDF engine…");
+  showLoading("Fetching datasheets from GitHub…");
   try {
+    /* Datasheets come from the GitHub library — make sure they're all downloaded before we match. */
+    await ensureLibraryLoaded();
+    if (!state.datasheets.length && !state.coverFile)
+      throw new Error(`No datasheets were found in the GitHub library (${libConfig ? libConfig.owner + "/" + libConfig.repo + "/" + libConfig.folder : "not configured"}). ${libStatus}`);
+
+    showLoading("Starting PDF engine…");
     /* Hard requirement: a verified real worker thread, or a clear error. Never a fake-worker fallback. */
     if (state.datasheets.length || state.bomFile.name.toLowerCase().endsWith(".pdf"))
       await ensureRealPdfWorker();
@@ -1190,14 +1189,15 @@ async function generateManual(){
 
 /* ============================== RESET ============================== */
 /* ============================== ONLINE DATASHEET LIBRARY (GitHub) ============================== */
-/* Host the datasheet PDFs in a folder of the same GitHub repository that serves this page.
-   The app lists that folder live through the GitHub API, so newly uploaded PDFs show up here
-   automatically, and pulls files on demand (cached locally so they only download once).
-   owner/repo are auto-detected when the app runs on GitHub Pages (https://OWNER.github.io/REPO/).
-   Fill them in below only if you use a custom domain or open this file straight from disk. */
+/* The datasheet PDFs live in a folder of a GitHub repository. On load, the app lists that folder
+   through the GitHub API and AUTOMATICALLY downloads every PDF (cached locally in IndexedDB, so
+   each file downloads only once and re-downloads only when it changes in the repo). There is no
+   manual upload — the BOM step waits for this download to finish, then the matcher selects the
+   correct datasheet for each component. owner/repo are set explicitly below; if left blank they
+   are auto-detected when the app runs on GitHub Pages (https://OWNER.github.io/REPO/). */
 const DATASHEET_LIBRARY = {
-  owner:  "",            // e.g. "yourusername"   — leave "" to auto-detect on GitHub Pages
-  repo:   "",            // e.g. "iom-builder"    — leave "" to auto-detect on GitHub Pages
+  owner:  "eli-wright",  // GitHub repo owner that hosts the datasheets
+  repo:   "IOM",         // repository name (GitHub is case-insensitive here)
   branch: "main",
   folder: "datasheets"   // repo folder that holds the PDFs
 };
@@ -1288,55 +1288,65 @@ function renderLibrary(){
   if (!libConfig){ panel.classList.add("hidden"); return; }
   panel.classList.remove("hidden");
   $("lib-src").textContent = `${libConfig.owner}/${libConfig.repo}/${libConfig.folder}`;
-  const btn = $("lib-load-all");
   if (!libIndex.length){
     $("lib-list").innerHTML = `<li class="lib-empty">${esc(libStatus)}</li>`;
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-download"></i> Load all`;
     return;
   }
-  $("lib-list").innerHTML = libIndex.map((f, i) => `
+  $("lib-list").innerHTML = libIndex.map(f => `
     <li><i class="fas fa-file-pdf" style="color:#c0564a"></i>
       <span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
       <span class="size">${fmtSize(f.size)}</span>
       ${isLoadedName(f.name)
         ? `<span class="loaded-chip"><i class="fas fa-circle-check"></i> loaded</span>`
-        : `<button class="lib-add" data-i="${i}">+ Add</button>`}
+        : `<span class="size">pending…</span>`}
     </li>`).join("");
-  const left = libIndex.filter(f => !isLoadedName(f.name));
-  btn.disabled = !left.length;
-  btn.innerHTML = left.length
-    ? `<i class="fas fa-download"></i> Load all (${fmtSize(left.reduce((s, f) => s + (f.size || 0), 0))})`
-    : `<i class="fas fa-circle-check"></i> All loaded`;
 }
 
+/* Detect the library config and kick off the automatic download. */
 async function initLibrary(){
+  libLoadPromise = null;
   libConfig = detectLibrary(location);
-  if (!libConfig){ renderLibrary(); return; }
-  libStatus = "Loading file list…"; libIndex = []; renderLibrary();
-  try {
-    libIndex = await fetchLibraryIndex(libConfig);
-    libStatus = "No PDF files in the library folder yet — upload some to the repo and hit refresh.";
-  } catch(e){
-    libIndex = []; libStatus = e.message || String(e);
+  if (!libConfig){
+    libStatus = "GitHub datasheet library is not configured.";
+    renderFileList();
+    return;
   }
-  renderLibrary();
+  libStatus = "Loading datasheet list from GitHub…"; libIndex = [];
+  renderFileList();
+  ensureLibraryLoaded();   // fire-and-forget; the BOM step also awaits this before matching
 }
 
-async function addFromLibrary(indices){
-  const list = indices.map(i => libIndex[i]).filter(f => f && !isLoadedName(f.name));
-  if (!list.length) return;
-  const failed = [];
-  showLoading("Downloading datasheets…");
-  for (let k = 0; k < list.length; k++){
-    const f = list[k];
-    setLoading(`Downloading ${k + 1}/${list.length} — ${f.name} (${fmtSize(f.size)})`);
-    try { handleDatasheetFiles([await fetchLibraryFile(f)]); }
-    catch(e){ failed.push(`${f.name} — ${e.message}`); }
-  }
-  hideLoading();
-  renderLibrary();
-  if (failed.length) showMsg(`Could not download:<br>${failed.map(esc).join("<br>")}`, "Online Library");
+/* Download every datasheet in the GitHub folder exactly once (cached in IndexedDB).
+   Idempotent: repeated calls return the same in-flight promise, and the BOM step awaits it. */
+let libLoadPromise = null;
+function ensureLibraryLoaded(){
+  if (libLoadPromise) return libLoadPromise;
+  libLoadPromise = (async () => {
+    if (!libConfig) return;
+    if (!libIndex.length){
+      try { libIndex = await fetchLibraryIndex(libConfig); }
+      catch(e){ libStatus = e.message || String(e); libIndex = []; renderFileList(); return; }
+    }
+    if (!libIndex.length){
+      libStatus = "No PDF datasheets found in the GitHub library folder yet.";
+      renderFileList(); return;
+    }
+    const pending = libIndex.filter(f => !isLoadedName(f.name));
+    const failed = [];
+    for (let k = 0; k < pending.length; k++){
+      const f = pending[k];
+      libStatus = `Downloading datasheet ${k + 1}/${pending.length} — ${f.name}…`;
+      renderFileList();
+      try { handleDatasheetFiles([await fetchLibraryFile(f)], true); }
+      catch(e){ failed.push(`${f.name} — ${e.message}`); }
+    }
+    libStatus = failed.length
+      ? `${state.datasheets.length} loaded — ${failed.length} failed to download.`
+      : `${libIndex.length} datasheet${libIndex.length === 1 ? "" : "s"} loaded automatically from GitHub.`;
+    renderFileList(); updateUI();
+  })().catch(err => { libStatus = err.message || String(err); renderFileList(); })
+     .finally(() => { /* keep the resolved promise so callers don't re-trigger downloads */ });
+  return libLoadPromise;
 }
 
 function resetAll(){
@@ -1344,22 +1354,17 @@ function resetAll(){
   state.datasheets = []; state.coverFile = null; state.pdfText.clear();
   state.processed = false; state.assigned = false;
   $("job-number-input").value = "";
-  $("bom-input").value = ""; $("ds-input").value = "";
+  $("bom-input").value = "";
   $("bom-prompt").classList.remove("hidden"); $("bom-loaded").classList.add("hidden");
-  $("ds-prompt").classList.remove("hidden"); $("ds-loaded").classList.add("hidden");
   $("bom-results").classList.add("hidden"); $("col-note").classList.add("hidden");
   $("review-list").innerHTML = ""; $("unused-note").classList.add("hidden");
   renderFileList(); updateUI();
+  initLibrary();   // re-fetch and re-load the datasheets from GitHub
 }
 
 /* ============================== EVENTS ============================== */
 $("reset-btn").addEventListener("click", resetAll);
 $("lib-refresh").addEventListener("click", initLibrary);
-$("lib-load-all").addEventListener("click", () => addFromLibrary(libIndex.map((_, i) => i)));
-$("lib-list").addEventListener("click", e => {
-  const b = e.target.closest(".lib-add");
-  if (b) addFromLibrary([+b.dataset.i]);
-});
 $("job-number-input").addEventListener("input", e => { state.jobNumber = e.target.value.trim(); updateUI(); });
 
 function wireDropZone(zone, input, browseBtn, handler, multiple){
@@ -1372,7 +1377,6 @@ function wireDropZone(zone, input, browseBtn, handler, multiple){
   zone.addEventListener("drop", e => { zone.classList.remove("dragover"); if (e.dataTransfer.files.length) handler(multiple ? e.dataTransfer.files : e.dataTransfer.files[0]); });
 }
 wireDropZone($("bom-dz"), $("bom-input"), $("bom-browse"), handleBomFile, false);
-wireDropZone($("ds-dz"), $("ds-input"), $("ds-browse"), handleDatasheetFiles, true);
 
 $("process-btn").addEventListener("click", processBom);
 $("assign-btn").addEventListener("click", autoAssign);
