@@ -106,10 +106,8 @@ input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(12,90,
 .dz .t2{font-size:12px;color:var(--ink-3);margin:4px 0}
 .dz .ok-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(28,122,75,.1);border:1px solid var(--ok);color:var(--ok);padding:8px 12px;font-size:13px;font-weight:600;max-width:100%}
 .dz .ok-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ds-status{min-height:54px;display:flex;align-items:center;padding:14px;border:1.5px solid var(--ink);background:rgba(255,255,255,.55)}
-.ds-status .ok-chip{display:inline-flex;align-items:center;gap:8px;background:rgba(28,122,75,.1);border:1px solid var(--ok);color:var(--ok);padding:8px 12px;font-size:13px;font-weight:600;max-width:100%}
-.ds-status .ds-status-msg{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13px}
-.ds-status .ds-status-msg.err{color:var(--bad)}
+.ds-info{margin:12px 0 0;font-size:12.5px;color:var(--ink-2);display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;min-height:18px}
+.ds-info.ok{color:var(--ok)} .ds-info.err{color:var(--bad)}
 .section-label{font-family:var(--display);font-size:16px;text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:0 0 8px;display:flex;align-items:center;gap:8px}
 .section-label .tag{font-family:var(--body);font-size:11px;letter-spacing:.05em;background:var(--ink);color:#fff;padding:1px 7px}
 .note{font-size:12.5px;color:var(--ink-2);background:rgba(12,90,166,.06);border-left:3px solid var(--blue);padding:8px 12px;margin-top:12px}
@@ -218,15 +216,11 @@ select:focus{outline:none;border-color:var(--blue)}
     <aside class="rail">
       <div class="step" id="step-1">
         <div class="col"><div class="marker">1</div><div class="bar"></div></div>
-        <div><h3>Bill of Materials</h3><p class="desc">Upload BOM, then process.</p></div>
+        <div><h3>Bill of Materials</h3><p class="desc">Upload your BOM — datasheets &amp; matching are automatic.</p></div>
       </div>
       <div class="step" id="step-2">
-        <div class="col"><div class="marker">2</div><div class="bar"></div></div>
-        <div><h3>Assign Datasheets</h3><p class="desc">Rules → text match → AI fallback.</p></div>
-      </div>
-      <div class="step" id="step-3">
-        <div class="col"><div class="marker">3</div></div>
-        <div><h3>Review &amp; Build</h3><p class="desc">Verify, set options, generate PDF.</p></div>
+        <div class="col"><div class="marker">2</div></div>
+        <div><h3>Review &amp; Build</h3><p class="desc">Check matches, set options, generate PDF.</p></div>
       </div>
     </aside>
 
@@ -234,39 +228,25 @@ select:focus{outline:none;border-color:var(--blue)}
 
       <!-- STEP 1 -->
       <section class="card locked" id="card-1">
-        <div class="hd"><h2><span class="num">01</span>Upload &amp; Process BOM</h2><span class="hint">Upload your bill of materials — datasheets load automatically from GitHub.</span></div>
+        <div class="hd"><h2><span class="num">01</span>Upload Bill of Materials</h2><span class="hint">CSV, XLSX, or PDF. Datasheets load &amp; match automatically.</span></div>
         <div class="bd">
-          <div class="grid2">
-            <div>
-              <p class="section-label"><span class="tag">A</span> Bill of Materials</p>
-              <div class="dz" id="bom-dz">
-                <div id="bom-prompt">
-                  <i class="fas fa-file-invoice big"></i>
-                  <p class="t1">Drag &amp; drop BOM file</p>
-                  <p class="t2">.csv · .xlsx · .pdf — or</p>
-                  <button class="btn btn-ghost" id="bom-browse">Browse…</button>
-                </div>
-                <div id="bom-loaded" class="hidden"></div>
-                <input type="file" id="bom-input" class="hidden" accept=".csv,.xlsx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf">
+          <div style="max-width:540px;margin:0 auto">
+            <p class="section-label">Bill of Materials</p>
+            <div class="dz" id="bom-dz">
+              <div id="bom-prompt">
+                <i class="fas fa-file-invoice big"></i>
+                <p class="t1">Drag &amp; drop BOM file</p>
+                <p class="t2">.csv · .xlsx · .pdf — or</p>
+                <button class="btn btn-ghost" id="bom-browse">Browse…</button>
               </div>
+              <div id="bom-loaded" class="hidden"></div>
+              <input type="file" id="bom-input" class="hidden" accept=".csv,.xlsx,.pdf,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf">
             </div>
-            <div>
-              <p class="section-label"><span class="tag">B</span> Datasheets <span style="font-weight:400;font-size:12px;color:var(--ink-3)">(loaded automatically from GitHub)</span></p>
-              <div id="ds-loaded" class="ds-status"></div>
-              <div id="lib-panel" class="lib hidden">
-                <div class="lib-head">
-                  <span><i class="fas fa-cloud-arrow-down"></i>&nbsp;GitHub Datasheet Library <span class="src" id="lib-src"></span></span>
-                  <span style="display:flex;align-items:center;gap:6px">
-                    <button class="icon-btn" id="lib-refresh" title="Re-check GitHub for new datasheets"><i class="fas fa-rotate"></i></button>
-                  </span>
-                </div>
-                <ul class="files" id="lib-list"></ul>
-              </div>
-            </div>
+            <p id="ds-info" class="ds-info"></p>
           </div>
 
           <div class="center">
-            <button id="process-btn" class="btn btn-primary" disabled><i class="fas fa-gears"></i>&nbsp; Process BOM</button>
+            <button id="process-btn" class="btn btn-primary" disabled><i class="fas fa-wand-magic-sparkles"></i>&nbsp; Process &amp; Auto-Match</button>
           </div>
 
           <div id="bom-results" class="hidden">
@@ -288,23 +268,11 @@ select:focus{outline:none;border-color:var(--blue)}
 
       <!-- STEP 2 -->
       <section class="card locked" id="card-2">
-        <div class="hd"><h2><span class="num">02</span>Assign Datasheets</h2>
-          <span class="chip" id="ai-chip" title="AI fallback runs only for items the rules and text matching can't resolve."><span class="dot"></span><span id="ai-chip-text">AI assist: ready</span></span>
+        <div class="hd"><h2><span class="num">02</span>Review &amp; Build</h2>
+          <span class="chip" id="ai-chip" title="AI fallback runs only for items the shop rules and text matching can't resolve."><span class="dot"></span><span id="ai-chip-text">AI assist: ready</span></span>
         </div>
         <div class="bd">
-          <p class="section-label">Datasheet Library <span style="font-weight:400;font-size:12px;color:var(--ink-3)">— click <i class="fas fa-crown" style="color:var(--safety)"></i> to set a file as the cover manual</span></p>
-          <ul class="files" id="file-list"></ul>
-          <div class="center">
-            <button id="assign-btn" class="btn btn-warn" disabled><i class="fas fa-wand-magic-sparkles"></i>&nbsp; Auto-Assign Datasheets</button>
-          </div>
-          <div class="note" style="margin-top:16px"><b>How matching works:</b> exact shop rules run first (Parker, Hansen, Danfoss, Teikoku, Cyrus Shank…), then part numbers and descriptions are matched against filenames and the extracted text of each PDF. Anything still unresolved is sent to the AI in one batch.</div>
-        </div>
-      </section>
-
-      <!-- STEP 3 -->
-      <section class="card locked" id="card-3">
-        <div class="hd"><h2><span class="num">03</span>Review &amp; Build</h2><span class="hint">Override any assignment, then generate the package.</span></div>
-        <div class="bd">
+          <div class="note" style="margin-top:0;margin-bottom:14px"><b>Matched automatically</b> — shop rules → part-number/text match → AI fallback. Each datasheet was cross-referenced against the BOM line. Override any match with the dropdowns below, then generate.</div>
           <div id="review-list"></div>
           <div id="unused-note" class="note warn hidden"></div>
           <div class="opts">
@@ -649,8 +617,7 @@ function updateUI(){
   const uploadsOk = !!state.bomFile;   // datasheets are fetched automatically from the GitHub library
 
   $("card-1").classList.toggle("locked", !jobOk);
-  $("card-2").classList.toggle("locked", !state.processed);
-  $("card-3").classList.toggle("locked", !state.assigned);
+  $("card-2").classList.toggle("locked", !state.assigned);
 
   const setStep = (el, mode) => {
     el.classList.remove("active","done");
@@ -658,13 +625,11 @@ function updateUI(){
     if (mode === "done"){ el.classList.add("done"); m.innerHTML = '<i class="fas fa-check"></i>'; }
     else { m.textContent = el.id.slice(-1); if (mode === "active") el.classList.add("active"); }
   };
-  if (!jobOk){ setStep($("step-1"),""); setStep($("step-2"),""); setStep($("step-3"),""); }
-  else if (!state.processed){ setStep($("step-1"),"active"); setStep($("step-2"),""); setStep($("step-3"),""); }
-  else if (!state.assigned){ setStep($("step-1"),"done"); setStep($("step-2"),"active"); setStep($("step-3"),""); }
-  else { setStep($("step-1"),"done"); setStep($("step-2"),"done"); setStep($("step-3"),"active"); }
+  if (!jobOk){ setStep($("step-1"),""); setStep($("step-2"),""); }
+  else if (!state.assigned){ setStep($("step-1"),"active"); setStep($("step-2"),""); }
+  else { setStep($("step-1"),"done"); setStep($("step-2"),"active"); }
 
   $("process-btn").disabled = !(jobOk && uploadsOk);
-  $("assign-btn").disabled = !state.processed;
   $("bom-results").classList.toggle("hidden", !state.processed);
 
   const q = qualifiedItems();
@@ -703,30 +668,20 @@ function renderBomTable(){
   updateUI();
 }
 
+/* The datasheet library is entirely behind the scenes now — this only updates a
+   small status line under the BOM uploader so there's quiet feedback that the
+   repo's datasheets are loading / loaded. */
 function renderFileList(){
-  let html = "";
-  if (state.coverFile){
-    html += `<li class="cover"><i class="fas fa-crown crown on" title="This file is the cover manual"></i>
-      <span class="name">${esc(state.coverFile.name)}</span>
-      <span class="badge rule">Cover</span>
-      <button class="icon-btn uncover-btn" title="Unset cover"><i class="fas fa-xmark"></i></button></li>`;
-  }
-  html += state.datasheets.map((f, i) =>
-    `<li><button class="icon-btn set-cover" data-i="${i}" title="Use as cover manual"><i class="fas fa-crown crown"></i></button>
-      <i class="fas fa-file-pdf" style="color:#c0564a"></i>
-      <span class="name">${esc(f.name)}</span>
-      <button class="icon-btn rm-file" data-i="${i}" title="Remove"><i class="fas fa-circle-xmark"></i></button></li>`
-  ).join("");
-  $("file-list").innerHTML = html || '<li style="color:var(--ink-3)">No datasheets loaded yet.</li>';
-
-  const dsLoaded = $("ds-loaded");
+  const info = $("ds-info");
+  if (!info) return;
   if (state.datasheets.length || state.coverFile){
-    dsLoaded.innerHTML = `<span class="ok-chip"><i class="fas fa-circle-check"></i><span>${state.datasheets.length} datasheet${state.datasheets.length === 1 ? "" : "s"}${state.coverFile ? " + cover manual" : ""} loaded from GitHub</span></span>`;
+    info.className = "ds-info ok";
+    info.innerHTML = `<i class="fas fa-circle-check"></i> ${state.datasheets.length} datasheet${state.datasheets.length === 1 ? "" : "s"}${state.coverFile ? " + cover manual" : ""} loaded from the repository — matching is automatic.`;
   } else {
     const isErr = libConfig && libIndex.length === 0 && !/loading|checking|download/i.test(libStatus);
-    dsLoaded.innerHTML = `<span class="ds-status-msg${isErr ? " err" : ""}"><i class="fas fa-cloud-arrow-down"></i> ${esc(libStatus)}</span>`;
+    info.className = "ds-info" + (isErr ? " err" : "");
+    info.innerHTML = `<i class="fas fa-cloud-arrow-down"></i> ${esc(libStatus)}`;
   }
-  renderLibrary();  // keep the online-library "loaded" markers in sync
 }
 
 const SOURCE_BADGE = { rule: '<span class="badge rule">Rule</span>', match: '<span class="badge match">Matched</span>', ai: '<span class="badge ai">AI</span>', manual: '<span class="badge manual">Manual</span>' };
@@ -785,10 +740,6 @@ function handleDatasheetFiles(fileList, quiet){
   }
   if (coverSet && !quiet) showMsg("Cover manual detected and loaded automatically.");
   renderFileList(); updateUI();
-}
-
-function clearAssignmentsFor(name){
-  state.bomItems.forEach(it => { if (it.assignedFile === name){ it.assignedFile = null; it.assignSource = null; } });
 }
 
 /* ============================== STEP 1: PROCESS BOM ============================== */
@@ -897,8 +848,15 @@ async function processBom(){
     state.processed = true;
     state.assigned = false;
     renderBomTable();
+
+    /* Fully automatic: immediately cross-reference the datasheets to the BOM. */
+    setLoading("Matching datasheets to the BOM…");
+    const items = await autoAssign();
+
     hideLoading();
-    document.getElementById("card-2").classList.add("reveal");
+    const matched = items.filter(i => i.assignedFile && getFile(i.assignedFile)).length;
+    showMsg(`Processed <b>${items.length}</b> qualified BOM line item${items.length === 1 ? "" : "s"} and automatically matched <b>${matched}</b> to datasheets from the repository.` +
+      `<br><br>Review the matches below and override any with the dropdowns if needed, then generate the manual.`, "Done");
   } catch(err){
     hideLoading();
     console.error(err);
@@ -976,37 +934,30 @@ function applyScoredMatching(items, used, threshold){
   });
 }
 
+/* Cross-reference every qualified BOM line to a datasheet: exact shop rules →
+   part-number/description scoring → AI fallback. Runs automatically right after
+   the BOM is processed. The caller owns the loading overlay and any messaging. */
 async function autoAssign(){
-  showLoading("Applying shop rules…");
-  try {
-    const items = qualifiedItems();
-    items.forEach(it => { it.assignedFile = null; it.assignSource = null; });
-    const used = new Set();
+  const items = qualifiedItems();
+  items.forEach(it => { it.assignedFile = null; it.assignSource = null; });
+  const used = new Set();
 
-    applySpecificRules(items, used);
+  applySpecificRules(items, used);
 
-    setLoading("Matching part numbers & descriptions against PDFs…");
-    applyScoredMatching(items, used, 40);
+  setLoading("Matching part numbers & descriptions against datasheets…");
+  applyScoredMatching(items, used, 40);
 
-    const remaining = items.filter(it => !it.assignedFile);
-    const avail = state.datasheets.filter(f => !used.has(f.name));
-    if (remaining.length && avail.length){
-      setLoading(`AI matching ${remaining.length} remaining item${remaining.length === 1 ? "" : "s"}…`);
-      await aiAssignFiles(remaining, avail, used);
-    }
-
-    state.assigned = true;
-    renderReview(); updateUI();
-    hideLoading();
-    const done = items.filter(i => i.assignedFile).length;
-    showMsg(`Assigned datasheets to <b>${done} of ${items.length}</b> qualified items.<br>` +
-      `Sources — <span class="badge rule">Rule</span> exact shop rules, <span class="badge match">Matched</span> part-number/text match, <span class="badge ai">AI</span> Claude fallback.` +
-      `<br><br>Review everything in Step 3 and override with the dropdowns where needed.`, "Auto-Assignment Complete");
-    document.getElementById("card-3").classList.add("reveal");
-  } catch(err){
-    hideLoading(); console.error(err);
-    showMsg(`Auto-assignment hit a problem: ${esc(err.message || err)}`, "Assignment Error");
+  const remaining = items.filter(it => !it.assignedFile);
+  const avail = state.datasheets.filter(f => !used.has(f.name));
+  if (remaining.length && avail.length){
+    setLoading(`AI matching ${remaining.length} remaining item${remaining.length === 1 ? "" : "s"}…`);
+    await aiAssignFiles(remaining, avail, used);
   }
+
+  state.assigned = true;
+  renderReview(); updateUI();
+  document.getElementById("card-2").classList.add("reveal");
+  return items;
 }
 
 /* ============================== STEP 3: GENERATE PDF ============================== */
@@ -1283,25 +1234,6 @@ async function fetchLibraryFile(entry){
 const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB";
 function isLoadedName(n){ return state.datasheets.some(f => f.name === n) || (!!state.coverFile && state.coverFile.name === n); }
 
-function renderLibrary(){
-  const panel = $("lib-panel");
-  if (!libConfig){ panel.classList.add("hidden"); return; }
-  panel.classList.remove("hidden");
-  $("lib-src").textContent = `${libConfig.owner}/${libConfig.repo}/${libConfig.folder}`;
-  if (!libIndex.length){
-    $("lib-list").innerHTML = `<li class="lib-empty">${esc(libStatus)}</li>`;
-    return;
-  }
-  $("lib-list").innerHTML = libIndex.map(f => `
-    <li><i class="fas fa-file-pdf" style="color:#c0564a"></i>
-      <span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
-      <span class="size">${fmtSize(f.size)}</span>
-      ${isLoadedName(f.name)
-        ? `<span class="loaded-chip"><i class="fas fa-circle-check"></i> loaded</span>`
-        : `<span class="size">pending…</span>`}
-    </li>`).join("");
-}
-
 /* Detect the library config and kick off the automatic download. */
 async function initLibrary(){
   libLoadPromise = null;
@@ -1364,7 +1296,6 @@ function resetAll(){
 
 /* ============================== EVENTS ============================== */
 $("reset-btn").addEventListener("click", resetAll);
-$("lib-refresh").addEventListener("click", initLibrary);
 $("job-number-input").addEventListener("input", e => { state.jobNumber = e.target.value.trim(); updateUI(); });
 
 function wireDropZone(zone, input, browseBtn, handler, multiple){
@@ -1379,7 +1310,6 @@ function wireDropZone(zone, input, browseBtn, handler, multiple){
 wireDropZone($("bom-dz"), $("bom-input"), $("bom-browse"), handleBomFile, false);
 
 $("process-btn").addEventListener("click", processBom);
-$("assign-btn").addEventListener("click", autoAssign);
 $("generate-btn").addEventListener("click", generateManual);
 
 $("bom-tbody").addEventListener("click", e => {
@@ -1396,23 +1326,6 @@ $("excluded-list").addEventListener("click", e => {
   const item = state.bomItems[+btn.dataset.i];
   item.excluded = false; item.excludeReason = ""; item.eligible = true;
   renderBomTable(); if (state.assigned) renderReview();
-});
-$("file-list").addEventListener("click", e => {
-  const rm = e.target.closest(".rm-file"), setC = e.target.closest(".set-cover"), unC = e.target.closest(".uncover-btn");
-  if (rm){
-    const f = state.datasheets[+rm.dataset.i];
-    state.datasheets.splice(+rm.dataset.i, 1);
-    state.pdfText.delete(f.name); clearAssignmentsFor(f.name);
-  } else if (setC){
-    const f = state.datasheets[+setC.dataset.i];
-    if (state.coverFile) state.datasheets.push(state.coverFile);          // demote old cover back to library
-    state.datasheets = state.datasheets.filter(x => x !== f);
-    clearAssignmentsFor(f.name);
-    state.coverFile = f;
-  } else if (unC){
-    if (state.coverFile){ state.datasheets.push(state.coverFile); state.coverFile = null; }
-  } else return;
-  renderFileList(); if (state.assigned) renderReview(); updateUI();
 });
 $("review-list").addEventListener("change", e => {
   if (!e.target.classList.contains("rev-select")) return;

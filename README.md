@@ -7,15 +7,20 @@ The entire app is one file — [`index.html`](index.html) — with no build step
 
 ## How it works
 
-1. **Enter the job number** to unlock the workflow.
-2. **Upload a BOM** (`.csv`, `.xlsx`, or `.pdf`).
-3. **Datasheets load automatically** from this repo's [`datasheets/`](datasheets)
-   folder — there is no manual upload. The app lists the folder via the GitHub
-   API and downloads every PDF once, caching them in the browser (IndexedDB) so
-   they only re-download when they change in the repo.
-4. **Auto-assignment** picks the correct datasheet for each component using shop
-   rules → part-number/text matching → an AI fallback. Review and override in
-   Step 3, then generate the combined PDF.
+The datasheets are handled entirely behind the scenes — there is **no upload
+step and no library to manage**. The flow is just two steps:
+
+1. **Bill of Materials** — enter the job number and upload a BOM
+   (`.csv`, `.xlsx`, or `.pdf`), then click **Process & Auto-Match**.
+2. **Review & Build** — every BOM line is shown with the datasheet that was
+   matched to it. Override any match with the dropdowns, set options, and
+   generate the combined PDF.
+
+In the background the app lists this repo's [`datasheets/`](datasheets) folder
+via the GitHub API, downloads every PDF once (cached in the browser via
+IndexedDB so they only re-download when they change in the repo), then
+cross-references each one to the BOM using shop rules → part-number/text
+matching → an AI fallback.
 
 ## Adding or updating datasheets
 
