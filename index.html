@@ -999,7 +999,10 @@ async function processBom(){
       if (d.includes("coil") && !d.includes("valve")){ item.excluded = true; item.excludeReason = "Coil (non-valve)"; continue; }
       if (item.partNumber && seenPN.has(item.partNumber)){ item.excluded = true; item.excludeReason = "Duplicate part number"; continue; }
       const cat = getComponentCategory(d), m = lc(item.manufacturer);
-      if (cat){
+      /* Relief valves are distinct safety devices (different set pressures / locations,
+         e.g. one on the oil pot and one on the vessel), so don't collapse them by type.
+         Truly identical ones are still removed by the duplicate part-number rule above. */
+      if (cat && cat !== "relief-valve"){
         seenTypes[m] = seenTypes[m] || new Set();
         if (seenTypes[m].has(cat)){ item.excluded = true; item.excludeReason = `Duplicate type: ${item.manufacturer} ${cat.replace(/-/g," ")}`; continue; }
         seenTypes[m].add(cat);
