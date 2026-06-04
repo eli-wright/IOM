@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IOM Manual Builder</title>
+<title>JWT IOM Manual Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,6 +46,7 @@ body{background:
 .titleblock .tb-main{padding:18px 22px;border-right:2px solid var(--ink);flex:1}
 .titleblock h1{font-family:var(--display);font-weight:700;font-size:42px;letter-spacing:.04em;margin:0;line-height:1;text-transform:uppercase}
 .titleblock h1 .accent{color:var(--safety)}
+.titleblock h1 .jwt{background:linear-gradient(180deg,#c79a3e,#9a6b0a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#9a6b0a}
 .titleblock .sub{margin:6px 0 0;color:var(--ink-2);font-size:14px;letter-spacing:.02em}
 .tb-side{display:flex;flex-direction:column;justify-content:space-between;min-width:190px}
 .tb-cell{padding:8px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.08em}
@@ -170,49 +171,69 @@ select:focus{outline:none;border-color:var(--blue)}
 .foot-actions{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap}
 .center{text-align:center;margin-top:18px}
 /* ---------- Overlays ---------- */
-/* ---------- Boot gate (animated loading screen) ---------- */
+/* ---------- Boot gate (premium animated loading screen) ---------- */
 .boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;overflow:hidden;
-  background:radial-gradient(125% 125% at 50% -10%, #1b3d5c 0%, #0d2740 42%, #07131f 100%);
-  transition:opacity .6s ease}
-.boot.done{opacity:0;pointer-events:none}
-/* moving blueprint grid, faded toward the edges */
-.boot-bg{position:absolute;inset:-40px;pointer-events:none;opacity:.55;
-  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.06) 0 1px, transparent 1px 36px),repeating-linear-gradient(90deg, rgba(255,255,255,.06) 0 1px, transparent 1px 36px);
-  -webkit-mask-image:radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);mask-image:radial-gradient(circle at 50% 45%, #000 0%, transparent 72%);
-  animation:bootPan 16s linear infinite}
-@keyframes bootPan{from{background-position:0 0}to{background-position:36px 36px}}
-/* soft drifting orange glow */
-.boot-bg::after{content:"";position:absolute;width:60vmax;height:60vmax;left:50%;top:38%;transform:translate(-50%,-50%);
-  background:radial-gradient(circle, rgba(228,100,28,.18) 0%, transparent 60%);animation:bootDrift 9s ease-in-out infinite}
-@keyframes bootDrift{0%,100%{opacity:.5;transform:translate(-54%,-52%) scale(1)}50%{opacity:.85;transform:translate(-46%,-48%) scale(1.12)}}
-.boot-core{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center;padding:24px}
-.boot-brand{font-family:var(--display);font-weight:700;font-size:clamp(26px,6vw,38px);letter-spacing:.14em;text-transform:uppercase;color:#fff;text-shadow:0 4px 26px rgba(0,0,0,.45)}
-.boot-brand .accent{color:var(--safety)}
-.boot-brand .bar{display:block;height:3px;width:70px;margin:12px auto 0;background:linear-gradient(90deg,var(--safety),transparent);animation:bootBar 2.4s ease-in-out infinite}
-@keyframes bootBar{0%,100%{width:48px;opacity:.6}50%{width:104px;opacity:1}}
-.boot-ring{position:relative;width:clamp(190px,52vw,230px);aspect-ratio:1;filter:drop-shadow(0 10px 34px rgba(12,90,166,.4))}
-.boot-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.boot-ring circle{fill:none;stroke-linecap:round}
-.ring-track{stroke:rgba(255,255,255,.09);stroke-width:9}
-.ring-fill{stroke:url(#bootGrad);stroke-width:9;stroke-dasharray:603;stroke-dashoffset:603;filter:url(#bootGlow);transition:stroke-dashoffset .55s cubic-bezier(.33,1,.68,1)}
-.ring-spin{stroke:var(--safety);stroke-width:3;stroke-dasharray:6 597;transform-origin:50% 50%;animation:bootSpin 1.5s linear infinite;opacity:.9}
+  background:radial-gradient(145% 125% at 50% -18%, #244a73 0%, #122e4a 36%, #0a1a2c 66%, #050c15 100%);
+  transition:opacity .7s ease, filter .7s ease}
+.boot.done{opacity:0;filter:blur(7px);pointer-events:none}
+/* drifting aurora light blobs */
+.boot-atmos{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.boot-atmos i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.5;mix-blend-mode:screen}
+.boot-atmos .a1{width:46vmax;height:46vmax;left:6%;top:4%;background:radial-gradient(circle,rgba(228,100,28,.55),transparent 64%);animation:bootFloat 14s ease-in-out infinite}
+.boot-atmos .a2{width:42vmax;height:42vmax;right:4%;top:28%;background:radial-gradient(circle,rgba(12,90,166,.6),transparent 64%);animation:bootFloat 18s ease-in-out infinite reverse}
+.boot-atmos .a3{width:34vmax;height:34vmax;left:36%;bottom:0;background:radial-gradient(circle,rgba(255,196,110,.4),transparent 64%);animation:bootFloat 22s ease-in-out infinite}
+@keyframes bootFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(4%,-5%) scale(1.12)}66%{transform:translate(-5%,4%) scale(.93)}}
+/* fine moving blueprint grid, faded toward the edges */
+.boot-grid{position:absolute;inset:-60px;pointer-events:none;opacity:.4;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.06) 0 1px,transparent 1px 40px),repeating-linear-gradient(90deg,rgba(255,255,255,.06) 0 1px,transparent 1px 40px);
+  -webkit-mask-image:radial-gradient(circle at 50% 46%,#000 0%,transparent 70%);mask-image:radial-gradient(circle at 50% 46%,#000 0%,transparent 70%);
+  animation:bootPan 18s linear infinite}
+@keyframes bootPan{from{background-position:0 0}to{background-position:40px 40px}}
+/* subtle film grain */
+.boot-grain{position:absolute;inset:0;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* vignette */
+.boot::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,transparent 50%,rgba(0,0,0,.55) 100%)}
+.boot-core{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:30px;text-align:center;padding:24px}
+/* wordmark: metallic sheen + gold JWT + ember "Manual" */
+.boot-brand{position:relative;font-family:var(--display);font-weight:700;font-size:clamp(24px,5.6vw,40px);letter-spacing:.16em;text-transform:uppercase;
+  text-shadow:0 6px 30px rgba(0,0,0,.5);background-image:linear-gradient(100deg,#cfe0ef 0%,#fff 42%,#fff 50%,#cfe0ef 64%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;background-size:220% 100%;animation:bootSheen 5s ease-in-out infinite}
+@keyframes bootSheen{0%{background-position:130% 0}55%,100%{background-position:-30% 0}}
+.boot-brand .jwt{-webkit-text-fill-color:transparent;background-image:linear-gradient(180deg,#ffe7a8,#f4b53f 48%,#b9831c);-webkit-background-clip:text;background-clip:text}
+.boot-brand .em{-webkit-text-fill-color:transparent;background-image:linear-gradient(180deg,#ffb070,#e4641c);-webkit-background-clip:text;background-clip:text}
+/* precision gauge */
+.boot-ring{position:relative;width:clamp(212px,58vw,276px);aspect-ratio:1;filter:drop-shadow(0 16px 50px rgba(12,90,166,.45))}
+.boot-gauge{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.boot-gauge circle{fill:none}
+.ring-ticks{stroke:rgba(255,255,255,.15);stroke-width:9;stroke-dasharray:1.4 9.4;transform-box:fill-box;transform-origin:center;animation:bootSpin 60s linear infinite}
+.ring-track{stroke:rgba(255,255,255,.08);stroke-width:10;stroke-linecap:round}
+.ring-fill{stroke:url(#bootGrad);stroke-width:10;stroke-linecap:round;stroke-dasharray:628.3;stroke-dashoffset:628.3;filter:url(#bootGlow);transition:stroke-dashoffset .6s cubic-bezier(.33,1,.68,1)}
+.ring-inner{stroke:rgba(255,255,255,.2);stroke-width:2;stroke-dasharray:2 16;transform-box:fill-box;transform-origin:center;animation:bootSpinRev 9s linear infinite}
+.ring-head{fill:url(#bootHeadGrad);filter:url(#bootHeadGlow);transition:cx .6s cubic-bezier(.33,1,.68,1),cy .6s cubic-bezier(.33,1,.68,1)}
 @keyframes bootSpin{to{transform:rotate(360deg)}}
-.boot-halo{position:absolute;inset:-26px;border-radius:50%;z-index:-1;filter:blur(14px);
-  background:conic-gradient(from 0deg, transparent 0 62%, rgba(228,100,28,.45) 80%, rgba(12,90,166,.35) 92%, transparent 100%);
-  animation:bootSpin 5.5s linear infinite}
-.boot-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;font-size:clamp(38px,11vw,50px);color:#fff;letter-spacing:.01em}
-.boot-pct span{font-size:.46em;color:rgba(255,255,255,.55);margin-left:3px;align-self:flex-start;margin-top:.5em}
-.boot-tag{font-family:var(--body);font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;color:rgba(255,255,255,.6);min-height:18px;animation:bootPulse 2.2s ease-in-out infinite}
-@keyframes bootPulse{0%,100%{opacity:.4}50%{opacity:.9}}
-.boot-actions{margin-top:4px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+@keyframes bootSpinRev{to{transform:rotate(-360deg)}}
+/* rotating glow behind the gauge */
+.boot-halo{position:absolute;inset:-32px;border-radius:50%;z-index:-1;filter:blur(22px);opacity:.85;
+  background:conic-gradient(from 90deg,transparent 0 56%,rgba(244,181,63,.42) 74%,rgba(228,100,28,.5) 84%,rgba(12,90,166,.42) 94%,transparent 100%);
+  animation:bootSpin 6s linear infinite}
+/* center readout */
+.boot-read{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.boot-pct{display:inline-flex;align-items:flex-end;font-family:var(--mono);color:#fff;line-height:.9;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.boot-pct #boot-num{font-weight:600;font-size:clamp(44px,13.5vw,62px);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.boot-pct .sign{font-size:.4em;font-weight:600;color:rgba(255,255,255,.72);margin-left:2px;margin-bottom:.12em}
+.boot-tag{font-family:var(--body);font-size:11.5px;letter-spacing:.3em;text-transform:uppercase;color:rgba(255,255,255,.5);min-height:18px;animation:bootPulse 2.4s ease-in-out infinite}
+@keyframes bootPulse{0%,100%{opacity:.32}50%{opacity:.82}}
+.boot-actions{margin-top:2px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 .boot-actions .btn{box-shadow:none}
-.boot-actions .btn-ghost{color:#fff;border-color:rgba(255,255,255,.45);background:transparent}
-.boot-actions .btn-ghost:hover{background:rgba(255,255,255,.1)}
+.boot-actions .btn-ghost{color:#fff;border-color:rgba(255,255,255,.5);background:rgba(255,255,255,.05)}
+.boot-actions .btn-ghost:hover{background:rgba(255,255,255,.13)}
 .boot-actions .btn-primary{background:var(--safety);border-color:#b34c13}
 .boot.err .ring-fill{stroke:var(--bad)}
-.boot.err .ring-spin,.boot.err .boot-halo{animation:none;opacity:.25}
-.boot.err .boot-tag{color:#ff9b86;animation:none;letter-spacing:.03em;text-transform:none;font-size:13.5px;max-width:300px}
-@media (prefers-reduced-motion:reduce){.boot-bg,.boot-bg::after,.boot-brand .bar,.ring-spin,.boot-halo,.boot-tag{animation:none}}
+.boot.err .ring-head{opacity:0}
+.boot.err .ring-inner,.boot.err .boot-halo{animation:none;opacity:.2}
+.boot.err .boot-tag{color:#ff9b86;animation:none;letter-spacing:.04em;text-transform:none;font-size:13px;max-width:300px}
+@media (prefers-reduced-motion:reduce){.boot-atmos i,.boot-grid,.ring-ticks,.ring-inner,.boot-halo,.boot-brand,.boot-tag{animation:none}}
 .overlay{position:fixed;inset:0;background:rgba(19,33,43,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60;padding:20px}
 .hidden{display:none!important}
 .spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,.25);border-top-color:var(--safety);border-radius:50%;animation:spin .9s linear infinite}
@@ -230,30 +251,39 @@ select:focus{outline:none;border-color:var(--blue)}
 </style>
 </head>
 <body>
-<!-- Boot gate: animated loading screen; blocks the app until datasheets finish downloading -->
+<!-- Boot gate: premium animated loading screen; blocks the app until datasheets finish downloading -->
 <div id="boot" class="boot">
-  <div class="boot-bg" aria-hidden="true"></div>
+  <div class="boot-atmos" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+  <div class="boot-grid" aria-hidden="true"></div>
+  <div class="boot-grain" aria-hidden="true"></div>
   <div class="boot-core">
-    <div class="boot-brand">IOM <span class="accent">Manual</span> Builder<span class="bar"></span></div>
+    <div class="boot-brand"><span class="jwt">JWT</span> IOM <span class="em">Manual</span> Builder</div>
     <div class="boot-ring">
       <div class="boot-halo" aria-hidden="true"></div>
-      <svg viewBox="0 0 220 220" aria-hidden="true">
+      <svg class="boot-gauge" viewBox="0 0 240 240" aria-hidden="true">
         <defs>
           <linearGradient id="bootGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stop-color="#e4641c"/>
-            <stop offset="0.55" stop-color="#f0902a"/>
-            <stop offset="1" stop-color="#0c5aa6"/>
+            <stop offset="0" stop-color="#ffd27a"/><stop offset="0.4" stop-color="#e4641c"/><stop offset="1" stop-color="#0c5aa6"/>
           </linearGradient>
-          <filter id="bootGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="3.2" result="b"/>
-            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          <radialGradient id="bootHeadGrad">
+            <stop offset="0" stop-color="#ffffff"/><stop offset="0.55" stop-color="#ffe3a6"/><stop offset="1" stop-color="#f4b53f"/>
+          </radialGradient>
+          <filter id="bootGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="bootHeadGlow" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="3.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
-        <circle class="ring-track" cx="110" cy="110" r="96"/>
-        <circle id="boot-ring-fill" class="ring-fill" cx="110" cy="110" r="96"/>
-        <circle class="ring-spin" cx="110" cy="110" r="96"/>
+        <circle class="ring-ticks" cx="120" cy="120" r="112"/>
+        <circle class="ring-track" cx="120" cy="120" r="100"/>
+        <circle id="boot-ring-fill" class="ring-fill" cx="120" cy="120" r="100"/>
+        <circle class="ring-inner" cx="120" cy="120" r="84"/>
+        <circle id="boot-head" class="ring-head" cx="220" cy="120" r="5.5"/>
       </svg>
-      <div class="boot-pct" id="boot-pct">0<span>%</span></div>
+      <div class="boot-read">
+        <div class="boot-pct"><span id="boot-num">0</span><span class="sign">%</span></div>
+      </div>
     </div>
     <div class="boot-tag" id="boot-tag">Preparing your workspace</div>
     <div id="boot-actions" class="boot-actions hidden"></div>
@@ -264,7 +294,7 @@ select:focus{outline:none;border-color:var(--blue)}
   <!-- Title block -->
   <header class="titleblock">
     <div class="tb-main">
-      <h1>IOM <span class="accent">Manual</span> Builder</h1>
+      <h1><span class="jwt">JWT</span> IOM <span class="accent">Manual</span> Builder</h1>
       <p class="sub">Assemble Installation, Operation &amp; Maintenance packages from a BOM and component datasheets.</p>
     </div>
     <div class="tb-side">
@@ -415,7 +445,13 @@ function showMsg(body, title){ $("msg-title").textContent = title || "Notice"; $
 
 /* ---- Boot gate: an animated loading screen that blocks the app until every
    datasheet has finished downloading from the repository, then fades away. ---- */
-const BOOT_RING_C = 2 * Math.PI * 96;   // circumference of the progress ring (r=96)
+const BOOT_RING_C = 2 * Math.PI * 100;   // circumference of the progress ring (r=100)
+function bootHead(pct){
+  const dot = $("boot-head"); if (!dot) return;   // glowing comet head riding the arc tip
+  const a = (Math.max(0, Math.min(100, pct)) / 100) * 2 * Math.PI;  // svg's -90° rotation puts angle 0 at top
+  dot.setAttribute("cx", (120 + 100 * Math.cos(a)).toFixed(2));
+  dot.setAttribute("cy", (120 + 100 * Math.sin(a)).toFixed(2));
+}
 function setBootProgress(pct){
   const b = $("boot");
   if (!b || b.classList.contains("done")) return;
@@ -423,7 +459,8 @@ function setBootProgress(pct){
   pct = Math.max(0, Math.min(100, pct));
   const fill = $("boot-ring-fill");
   if (fill){ fill.style.strokeDasharray = BOOT_RING_C; fill.style.strokeDashoffset = BOOT_RING_C * (1 - pct / 100); }
-  $("boot-pct").innerHTML = Math.round(pct) + "<span>%</span>";
+  $("boot-num").textContent = Math.round(pct);
+  bootHead(pct);
   $("boot-actions").classList.add("hidden");
 }
 function bootDone(){
