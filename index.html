@@ -1050,9 +1050,10 @@ function applySpecificRules(items, used){
       f = findFileByName(n => n.includes("solenoid valve ics")) || findFileByName(n => n.includes("danfoss") && n.includes("solenoid"));
     else if (m === "parker"){
       if (d.includes("relief valve")){
-        if (pn.startsWith("SRH")) f = findFileByName(n => n.includes("srh") && n.includes("relief"));
+        if (pn.startsWith("SR1R")) f = findFileByName(n => n.includes("sr1r"));            // reduced-capacity (oil pot)
+        else if (pn.startsWith("SRH")) f = findFileByName(n => n.includes("srh") && n.includes("relief"));
         else if (pn.startsWith("SRLQ")) f = findFileByName(n => n.includes("srlq"));
-        else if (pn.startsWith("SR")) f = findFileByName(n => n.includes("sr relief"));
+        else if (pn.startsWith("SR")) f = findFileByName(n => n.includes("sr relief"));     // normal vessel relief
       }
       else if (d.includes("manifold") && pn.startsWith("M1-")) f = findFileByName(n => n.includes("m1") && n.includes("manifold"));
       else if (d.includes("float switch") && pn.includes("LLSS")) f = findFileByName(n => n.includes("llss"));
