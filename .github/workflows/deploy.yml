@@ -1,0 +1,85 @@
+name: Build & Deploy
+
+# One workflow that does everything for this single-file app:
+#   • validate  – runs on every push and pull request; fails fast if index.html
+#                 is broken (JS syntax, dangling element ids, mis-wired auto-load).
+#   • deploy    – publishes the app + datasheets to GitHub Pages, but only from
+#                 main (pull requests are validated, never deployed).
+#
+# One-time setup in the repo: Settings → Pages → Build and deployment →
+# Source = "GitHub Actions". After that every push to main goes live at
+# https://eli-wright.github.io/IOM/
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least-privilege by default; the deploy job needs Pages + OIDC token.
+permissions:
+  contents: read
+
+# Don't let two runs on the same ref fight; never cancel an in-flight deploy.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate index.html
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run validation
+        run: node scripts/validate.js
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: validate
+    # Publish only from main; pull requests stop after validation.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Assemble site (app + datasheets only)
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          # .nojekyll keeps Pages from mangling files/folders that start with "_"
+          # and serves the datasheet PDFs (spaces, parentheses, etc.) verbatim.
+          touch _site/.nojekyll
+          if [ -d datasheets ]; then
+            cp -r datasheets _site/datasheets
+            echo "Bundled $(find datasheets -type f -name '*.pdf' | wc -l) datasheet PDF(s)."
+          else
+            echo "::warning::No datasheets/ folder found — the app will load with an empty library until PDFs are added."
+          fi
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
